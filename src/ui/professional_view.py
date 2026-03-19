@@ -212,7 +212,7 @@ def render_professional_summary(allocation: ProfessionalAllocation) -> None:
 # Project Breakdown Chart Component (Task 3.4)
 # =============================================================================
 
-def render_project_breakdown_chart(breakdown: List[ProjectAllocation]) -> None:
+def render_project_breakdown_chart(breakdown: List[ProjectAllocation], key_suffix: str = "") -> None:
     """
     Render distribution chart showing allocation by project.
     
@@ -221,6 +221,7 @@ def render_project_breakdown_chart(breakdown: List[ProjectAllocation]) -> None:
     
     Args:
         breakdown: List of ProjectAllocation objects with per-project metrics
+        key_suffix: Optional suffix for unique Streamlit keys
     """
     if not breakdown:
         st.info("Nenhum projeto encontrado para este profissional.")
@@ -275,7 +276,7 @@ def render_project_breakdown_chart(breakdown: List[ProjectAllocation]) -> None:
             height=400,
         )
         
-        st.plotly_chart(fig, use_container_width=True, key="project_breakdown_pie")
+        st.plotly_chart(fig, use_container_width=True, key=f"project_breakdown_pie{key_suffix}")
     
     with col2:
         # Show breakdown table
@@ -307,7 +308,7 @@ def render_project_breakdown_chart(breakdown: List[ProjectAllocation]) -> None:
 # Professional Timeline Chart Component (Task 3.5)
 # =============================================================================
 
-def render_professional_timeline(timeline: List[WeeklyAllocation]) -> None:
+def render_professional_timeline(timeline: List[WeeklyAllocation], key_suffix: str = "") -> None:
     """
     Render temporal evolution chart of professional allocation.
     
@@ -316,6 +317,7 @@ def render_professional_timeline(timeline: List[WeeklyAllocation]) -> None:
     
     Args:
         timeline: List of WeeklyAllocation objects with weekly metrics
+        key_suffix: Optional suffix for unique Streamlit keys
     """
     if not timeline:
         st.info("Nenhum dado de timeline disponível.")
@@ -395,7 +397,7 @@ def render_professional_timeline(timeline: List[WeeklyAllocation]) -> None:
         height=400,
     )
     
-    st.plotly_chart(fig, use_container_width=True, key="professional_timeline")
+    st.plotly_chart(fig, use_container_width=True, key=f"professional_timeline{key_suffix}")
     
     # Show effort breakdown per week in expander
     with st.expander("📊 Ver detalhes por semana"):
@@ -441,7 +443,8 @@ def render_professional_timeline(timeline: List[WeeklyAllocation]) -> None:
 def render_professional_view_content(
     selected_professional_id: str,
     professionals: List[Professional],
-    metrics_engine: "ProfessionalMetricsEngine"
+    metrics_engine: "ProfessionalMetricsEngine",
+    key_suffix: str = ""
 ) -> None:
     """
     Render the professional allocation view content (without selector).
@@ -450,6 +453,7 @@ def render_professional_view_content(
         selected_professional_id: Selected professional's account ID
         professionals: List of Professional objects
         metrics_engine: ProfessionalMetricsEngine instance for calculating metrics
+        key_suffix: Optional suffix for unique Streamlit keys (used when rendering multiple professionals)
     """
     from src.metrics.professional_metrics import ProfessionalMetricsEngine
     
@@ -489,7 +493,7 @@ def render_professional_view_content(
     
     with col1:
         # Render project breakdown chart (shows which projects the professional is involved in)
-        render_project_breakdown_chart(allocation.project_breakdown)
+        render_project_breakdown_chart(allocation.project_breakdown, key_suffix=key_suffix)
     
     with col2:
         # Create placeholder for timeline loading
@@ -505,7 +509,7 @@ def render_professional_view_content(
                 weeks=8
             )
             timeline_placeholder.empty()
-            render_professional_timeline(timeline)
+            render_professional_timeline(timeline, key_suffix=key_suffix)
         except Exception as e:
             timeline_placeholder.empty()
             st.warning(f"Não foi possível carregar o timeline: {str(e)}")
@@ -513,7 +517,7 @@ def render_professional_view_content(
     st.divider()
     
     # Show detailed issues per project in expander
-    with st.expander("📋 Ver issues por projeto"):
+    with st.expander("📋 Ver issues por projeto", key=f"issues_expander{key_suffix}"):
         for proj in allocation.project_breakdown:
             st.markdown(f"**{proj.project_name or proj.project_key}** ({proj.issue_count} issues)")
             
@@ -536,7 +540,8 @@ def render_professional_view_content(
                     st.dataframe(
                         issue_data,
                         use_container_width=True,
-                        hide_index=True
+                        hide_index=True,
+                        key=f"issues_df_{proj.project_key}{key_suffix}"
                     )
             else:
                 st.caption("Nenhuma issue encontrada.")
@@ -560,8 +565,6 @@ def render_professional_view(
         professionals: List of Professional objects for the selector
         metrics_engine: ProfessionalMetricsEngine instance for calculating metrics
     """
-    from src.metrics.professional_metrics import ProfessionalMetricsEngine
-    
     st.header("👤 Visão por Profissional")
     st.markdown(
         "Selecione um profissional para visualizar em quais projetos está alocado e sua distribuição de trabalho."
@@ -582,92 +585,10 @@ def render_professional_view(
     
     st.divider()
     
-    # Create placeholders for loading state
-    loading_placeholder = st.empty()
-    
-    # Show loading skeleton while loading allocation data
-    with loading_placeholder.container():
-        render_loading_card_skeleton(4)
-        st.markdown("---")
-        col1, col2 = st.columns(2)
-        with col1:
-            render_loading_skeleton(3, "200px", "Carregando dados de alocação...")
-        with col2:
-            render_loading_skeleton(3, "200px", "Carregando timeline...")
-    
-    # Load allocation data for selected professional (all projects)
-    try:
-        allocation = metrics_engine.calculate_cross_project_allocation(
-            professional_id=selected_professional_id
-        )
-    except Exception as e:
-        loading_placeholder.empty()
-        st.error(f"Erro ao carregar dados de alocação: {str(e)}")
-        return
-    
-    # Clear loading placeholder
-    loading_placeholder.empty()
-    
-    # Render summary cards
-    render_professional_summary(allocation)
-    
-    st.divider()
-    
-    # Create two columns for breakdown and timeline
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Render project breakdown chart (shows which projects the professional is involved in)
-        render_project_breakdown_chart(allocation.project_breakdown)
-    
-    with col2:
-        # Create placeholder for timeline loading
-        timeline_placeholder = st.empty()
-        
-        with timeline_placeholder.container():
-            render_loading_skeleton(2, "150px", "Carregando timeline...")
-        
-        # Load and render timeline
-        try:
-            timeline = metrics_engine.get_professional_timeline(
-                professional_id=selected_professional_id,
-                weeks=8
-            )
-            timeline_placeholder.empty()
-            render_professional_timeline(timeline)
-        except Exception as e:
-            timeline_placeholder.empty()
-            st.warning(f"Não foi possível carregar o timeline: {str(e)}")
-    
-    st.divider()
-    
-    # Show detailed issues per project in expander
-    with st.expander("📋 Ver issues por projeto"):
-        for proj in allocation.project_breakdown:
-            st.markdown(f"**{proj.project_name or proj.project_key}** ({proj.issue_count} issues)")
-            
-            if proj.issues:
-                # Create a simple table with issue details
-                issue_data = []
-                for issue in proj.issues:
-                    from src.models.data_models import get_tshirt_size_label
-                    issue_data.append({
-                        "Chave": issue.key,
-                        "Resumo": issue.summary[:50] + "..." if len(issue.summary) > 50 else issue.summary,
-                        "Status": issue.status,
-                        "Tamanho": get_tshirt_size_label(issue.t_shirt_size),
-                        "Criado": issue.created_date.strftime("%d/%m/%Y") if issue.created_date else "-",
-                        "Início": issue.started_date.strftime("%d/%m/%Y") if issue.started_date else "-",
-                        "Fim": issue.resolution_date.strftime("%d/%m/%Y") if issue.resolution_date else "-"
-                    })
-                
-                if issue_data:
-                    st.dataframe(
-                        issue_data,
-                        use_container_width=True,
-                        hide_index=True
-                    )
-            else:
-                st.caption("Nenhuma issue encontrada.")
-            
-            st.markdown("---")
+    # Use the content function with default key suffix
+    render_professional_view_content(
+        selected_professional_id=selected_professional_id,
+        professionals=professionals,
+        metrics_engine=metrics_engine,
+        key_suffix="_legacy"
+    )
