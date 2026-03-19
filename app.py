@@ -179,14 +179,47 @@ def check_access() -> bool:
         unsafe_allow_html=True
     )
     
+    # Custom CSS for orange button
+    st.markdown(
+        """
+        <style>
+        /* Orange button for form submit */
+        div[data-testid="stForm"] button[type="submit"],
+        div[data-testid="stFormSubmitButton"] button,
+        .stFormSubmitButton button {
+            background-color: #F37021 !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+        }
+        div[data-testid="stForm"] button[type="submit"]:hover,
+        div[data-testid="stFormSubmitButton"] button:hover,
+        .stFormSubmitButton button:hover {
+            background-color: #E05A10 !important;
+            border: none !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown("### 🔐 Acesso ao Sistema")
+        # Logo Efí
+        st.markdown(
+            """
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="https://sejaefi.com.br/_ipx/_/images/paginas/common/logos/logo-efi-bank-orange.svg" alt="Efí" style="width: 150px;">
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        st.markdown("### Acesso ao Sistema")
         st.markdown("Digite seu email corporativo para continuar.")
         
         with st.form("login_form"):
             email = st.text_input("Email", placeholder="seu.email@empresa.com.br")
-            submitted = st.form_submit_button("Entrar", use_container_width=True)
+            submitted = st.form_submit_button("Entrar", use_container_width=True, type="primary")
             
             if submitted:
                 if email:
