@@ -53,7 +53,7 @@
     ]
   },
   {
-    "time": "Mobile",
+    "time": "Web e Marketing",
     "techLeader": "Felipe Vasconcelos",
     "membros": [
       { "nome": "Amanda Felix", "funcao": "Web" },
@@ -62,6 +62,42 @@
       { "nome": "Túlio Carvalho", "funcao": "Web" },
       { "nome": "Caio Montenegro", "funcao": "Web" },
       { "nome": "Welker Ferreira", "funcao": "Marketing" }
+    ]
+  },
+  {
+    "time": "Boleto / Cartão e-commerce / Maquininha",
+    "techLeader": "Henrique Machiavelli",
+    "membros": [
+      { "nome": "Luiz Campos", "funcao": "Boleto / Cartão e-commerce / Maquininha" },
+      { "nome": "Filipe Siqueira", "funcao": "Boleto / Cartão e-commerce / Maquininha" },
+      { "nome": "Gustavo Costa", "funcao": "Boleto / Cartão e-commerce / Maquininha" },
+      { "nome": "Tiago Dakuzaku", "funcao": "Boleto / Cartão e-commerce / Maquininha" },
+      { "nome": "Matheus Nogueira", "funcao": "Boleto / Cartão e-commerce / Maquininha" }
+    ]
+  },
+  {
+    "time": "Pix - API / Open Finance",
+    "techLeader": "Gustavo Silva",
+    "membros": [
+      { "nome": "Pedro Filho", "funcao": "Pix - API" },
+      { "nome": "Christian Teixeira", "funcao": "Pix - API" },
+      { "nome": "André Zezen", "funcao": "Pix - API" },
+      { "nome": "Axel Andrade", "funcao": "Open Finance" },
+      { "nome": "Josue Almeida", "funcao": "Open Finance" }
+    ]
+  },
+  {
+    "time": "Pix - SPI",
+    "techLeader": "Matheus Flauzino",
+    "membros": [
+      { "nome": "Wallace Brito", "funcao": "Pix - SPI" },
+      { "nome": "Guilherme Gregorio", "funcao": "Pix - SPI" },
+      { "nome": "Hudson Leão", "funcao": "Pix - SPI" },
+      { "nome": "Gabriel Souza", "funcao": "Pix - SPI" },
+      { "nome": "Deborah Fonseca", "funcao": "Pix - SPI" },
+      { "nome": "Antônio Cardoso", "funcao": "Pix - SPI" },
+      { "nome": "Rafael Silva", "funcao": "Pix - SPI" },
+      { "nome": "Gabriel Santos", "funcao": "Pix - SPI" }
     ]
   }
 ]
