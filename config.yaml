@@ -1,0 +1,89 @@
+# =============================================================================
+# Jira Allocation Connector - Configuration File
+# =============================================================================
+# This file contains the default configuration settings for the application.
+# Sensitive credentials (API tokens, passwords) should be stored in environment
+# variables, not in this file. See .env.example for credential configuration.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Cache Settings
+# -----------------------------------------------------------------------------
+# Controls how long data is cached before being refreshed from the Jira API.
+# Reducing this value increases API calls but provides fresher data.
+cache:
+  # Time-to-live for cached data in seconds (default: 900 = 15 minutes)
+  ttl_seconds: 900
+
+# -----------------------------------------------------------------------------
+# Project Settings
+# -----------------------------------------------------------------------------
+# Configure which Jira projects to monitor and default capacity settings.
+projects:
+  # List of Jira project keys to monitor (e.g., ["PROJ1", "PROJ2"])
+  # Leave empty and configure via the UI, or add project keys here
+  keys: []
+  
+  # Default capacity hours per sprint for team members
+  # Used when calculating allocation rates
+  default_capacity_hours: 40.0
+
+# -----------------------------------------------------------------------------
+# Allocation Thresholds
+# -----------------------------------------------------------------------------
+# Thresholds for classifying team member allocation status.
+# These values determine when a team member is considered overloaded or underutilized.
+allocation:
+  # Percentage above which a team member is considered overloaded (default: 100%)
+  overload_threshold: 100
+  
+  # Percentage below which a team member is considered underutilized (default: 50%)
+  underutilization_threshold: 50
+
+# -----------------------------------------------------------------------------
+# AI Assistant Settings
+# -----------------------------------------------------------------------------
+# Configuration for the AI Scrum Master assistant that provides intelligent
+# suggestions based on project metrics.
+ai_assistant:
+  # Enable or disable the AI assistant (default: false)
+  # When disabled, the suggestions panel will be hidden
+  enabled: false
+  
+  # LLM model to use for generating suggestions
+  model: "gpt-4"
+  
+  # LLM provider (supported: "openai", "anthropic")
+  provider: "openai"
+
+# -----------------------------------------------------------------------------
+# UI Settings
+# -----------------------------------------------------------------------------
+# Visual customization settings for the dashboard.
+ui:
+  # Theme colors following the design specification
+  theme:
+    # Primary color - Orange (used for highlights and accents)
+    primary: "rgb(243, 112, 33)"
+    
+    # Background colors
+    background_light: "#f5f5f5"
+    background_dark: "#1a1a1a"
+    
+    # Secondary colors (blacks and grays)
+    secondary:
+      - "#1a1a1a"
+      - "#2d2d2d"
+      - "#4a4a4a"
+      - "#6b6b6b"
+      - "#9ca3af"
+    
+    # Text colors
+    text_primary: "#1f2937"
+    text_secondary: "#6b7280"
+    
+    # Status indicator colors
+    status:
+      normal: "#22c55e"      # Green - normal allocation
+      warning: "#eab308"     # Yellow - underutilized
+      critical: "#ef4444"    # Red - overloaded
