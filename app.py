@@ -49,6 +49,7 @@ from src.ui.charts import (
 from src.ui.professional_view import render_professional_view, render_professional_view_content
 from src.ui.legacy_view import render_legacy_view
 from src.metrics.professional_metrics import ProfessionalMetricsEngine
+from src.config.teams_loader import load_teams, get_team_names, get_team_members_by_name, find_team_for_member
 from src.models.data_models import (
     AllocationMetrics,
     AllocationStatus,
@@ -794,6 +795,9 @@ def render_allocation_drilldown(
         allocation_metrics: Allocation metrics to display.
         issues: Issues for detailed view.
     """
+    # Load teams for member lookup
+    teams = load_teams()
+    
     st.write("**Detalhamento por Membro** (clique para expandir)")
     
     for metric in allocation_metrics:
@@ -804,8 +808,11 @@ def render_allocation_drilldown(
             AllocationStatus.UNDERUTILIZED: "🟡"
         }.get(metric.status, "⚪")
         
-        with st.expander(f"{status_emoji} {metric.entity_name} - {metric.allocation_rate:.1f}%"):
-            col1, col2, col3 = st.columns(3)
+        # Find team for this member
+        member_team = find_team_for_member(teams, metric.entity_name) or "Sem time"
+        
+        with st.expander(f"{status_emoji} {metric.entity_name} ({member_team}) - {metric.allocation_rate:.1f}%"):
+            col1, col2, col3, col4 = st.columns(4)
             
             with col1:
                 st.metric("Issues Atribuídas", metric.assigned_issues)
@@ -814,6 +821,8 @@ def render_allocation_drilldown(
                          help="Baseado no T-Shirt Size das issues")
             with col3:
                 st.metric("Status", metric.status.value.title())
+            with col4:
+                st.metric("Time", member_team)
             
             # Show member's issues
             member_issues = [i for i in issues if i.assignee_account_id == metric.entity_id]
@@ -924,20 +933,26 @@ def render_productivity_drilldown(
         productivity_metrics: Productivity metrics to display.
         issues: Issues for detailed view.
     """
+    # Load teams for member lookup
+    teams = load_teams()
+    
     st.write("**Detalhamento de Produtividade** (clique para expandir)")
     
-    with st.expander("📈 Throughput - Issues Concluídas"):
+    with st.expander("📈 Throughput - Issues Concluídas", expanded=False):
         done_issues = [i for i in issues if i.status_category == "Done"]
         if done_issues:
             from src.models.data_models import get_tshirt_size_label
             issue_data = []
             for issue in done_issues:
+                # Find team for assignee
+                assignee_team = find_team_for_member(teams, issue.assignee_name) if issue.assignee_name else "Sem time"
                 issue_data.append({
                     "Key": issue.key,
                     "Resumo": issue.summary[:40] + "..." if len(issue.summary) > 40 else issue.summary,
                     "Tipo": issue.issue_type,
                     "Tamanho": get_tshirt_size_label(issue.t_shirt_size),
                     "Responsável": issue.assignee_name or "N/A",
+                    "Time": assignee_team or "Sem time",
                     "Criado": issue.created_date.strftime("%d/%m/%Y") if issue.created_date else "-",
                     "Início": issue.started_date.strftime("%d/%m/%Y") if issue.started_date else "-",
                     "Fim": issue.resolution_date.strftime("%d/%m/%Y") if issue.resolution_date else "-"
@@ -946,7 +961,7 @@ def render_productivity_drilldown(
         else:
             st.info("Nenhuma issue concluída")
     
-    with st.expander("⏱️ Lead Time - Detalhes"):
+    with st.expander("⏱️ Lead Time - Detalhes", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
             st.write("**Lead Time Médio:**")
@@ -967,7 +982,7 @@ def render_productivity_drilldown(
                 else:
                     st.success("Lead time saudável")
     
-    with st.expander("🔄 Cycle Time - Detalhes"):
+    with st.expander("🔄 Cycle Time - Detalhes", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
             st.write("**Cycle Time Médio:**")
@@ -1095,6 +1110,85 @@ def render_ai_analysis_section(
     if st.session_state.ai_analysis:
         st.markdown("---")
         st.markdown(st.session_state.ai_analysis)
+
+
+# =============================================================================
+# Teams Configuration Page
+# =============================================================================
+
+def render_teams_page():
+    """Render the teams configuration page."""
+    from src.config.teams_loader import load_teams, save_teams, Team, TeamMember
+    
+    st.header("👥 Configuração de Times")
+    st.markdown("Visualize e gerencie os times e seus membros.")
+    
+    st.divider()
+    
+    # Load teams
+    teams = load_teams()
+    
+    if not teams:
+        st.warning("Nenhum time configurado. O arquivo times.json não foi encontrado ou está vazio.")
+        return
+    
+    # Summary
+    total_members = sum(len(t.membros) + 1 for t in teams)  # +1 for tech leader
+    unique_teams = len(set(t.time for t in teams))
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total de Times", unique_teams)
+    with col2:
+        st.metric("Total de Membros", total_members)
+    with col3:
+        st.metric("Tech Leaders", len(teams))
+    
+    st.divider()
+    
+    # Display teams
+    for i, team in enumerate(teams):
+        with st.expander(f"🏢 {team.time} - Tech Leader: {team.tech_leader}", expanded=False):
+            # Team info
+            col1, col2 = st.columns([1, 3])
+            
+            with col1:
+                st.markdown(f"**Tech Leader:**")
+                st.markdown(f"**Membros:**")
+            
+            with col2:
+                st.markdown(f"{team.tech_leader}")
+                st.markdown(f"{len(team.membros)} pessoas")
+            
+            # Members table
+            if team.membros:
+                st.markdown("---")
+                st.markdown("**Equipe:**")
+                
+                member_data = []
+                for member in team.membros:
+                    member_data.append({
+                        "Nome": member.nome,
+                        "Função": member.funcao
+                    })
+                
+                st.dataframe(
+                    member_data,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Nome": st.column_config.TextColumn("Nome", width="medium"),
+                        "Função": st.column_config.TextColumn("Função", width="medium")
+                    }
+                )
+    
+    st.divider()
+    
+    # Info about editing
+    st.info(
+        "💡 Para editar os times, modifique o arquivo `src/config/times.json` diretamente. "
+        "As alterações serão refletidas após recarregar a página."
+    )
 
 
 # =============================================================================
@@ -1284,13 +1378,18 @@ def render_professional_view_tab(
         st.info("ℹ️ Nenhum projeto disponível.")
         return
     
+    # Load teams for filter
+    teams = load_teams()
+    team_names = get_team_names(teams)
+    
     # Filtros em linha única
     with st.expander("🔍 Filtros", expanded=True):
-        col1, col2, col3, col4 = st.columns([3, 1.5, 1.5, 1])
+        col1, col2, col3, col4, col5 = st.columns([2.5, 1.5, 1.5, 1.5, 0.8])
         
         # Get date range from session state
         prof_start_date = st.session_state.get("prof_filter_start_date")
         prof_end_date = st.session_state.get("prof_filter_end_date")
+        prof_selected_team = st.session_state.get("prof_filter_team", "")
         
         prof_date_range = None
         if prof_start_date or prof_end_date:
@@ -1314,6 +1413,20 @@ def render_professional_view_tab(
                 st.error(f"❌ Erro ao carregar profissionais: {str(e)}")
                 return
         
+        # Filter professionals by team if selected
+        if prof_selected_team and professionals:
+            team_members = get_team_members_by_name(teams, prof_selected_team)
+            team_members_lower = [m.lower() for m in team_members]
+            
+            filtered_professionals = []
+            for prof in professionals:
+                prof_name_lower = prof.display_name.lower()
+                for member in team_members_lower:
+                    if member in prof_name_lower or prof_name_lower in member:
+                        filtered_professionals.append(prof)
+                        break
+            professionals = filtered_professionals
+        
         with col1:
             if professionals:
                 prof_options = {
@@ -1333,6 +1446,17 @@ def render_professional_view_tab(
                 st.info("Nenhum profissional disponível.")
         
         with col2:
+            # Team filter
+            team_options = [""] + team_names
+            prof_selected_team = st.selectbox(
+                "Time",
+                options=team_options,
+                format_func=lambda x: "Todos os times" if x == "" else x,
+                key="prof_filter_team",
+                help="Filtrar profissionais por time"
+            )
+        
+        with col3:
             prof_start_date = st.date_input(
                 "Data Início",
                 value=None,
@@ -1340,7 +1464,7 @@ def render_professional_view_tab(
                 help="Filtrar issues criadas a partir desta data"
             )
         
-        with col3:
+        with col4:
             prof_end_date = st.date_input(
                 "Data Fim",
                 value=None,
@@ -1348,7 +1472,7 @@ def render_professional_view_tab(
                 help="Filtrar issues criadas até esta data"
             )
         
-        with col4:
+        with col5:
             st.write("")  # Spacer
             st.write("")  # Spacer
             if st.button("🔄", key="refresh_professionals", help="Atualizar dados"):
@@ -1366,6 +1490,8 @@ def render_professional_view_tab(
     
     # Show active filter info
     filter_parts = []
+    if prof_selected_team:
+        filter_parts.append(f"Time: {prof_selected_team}")
     if prof_start_date:
         filter_parts.append(f"De: {prof_start_date.strftime('%d/%m/%Y')}")
     if prof_end_date:
@@ -1458,6 +1584,12 @@ def render_dashboard_content(
         filter_parts.append(f"Sprints: {len(filters.sprint_ids)} selecionada(s)")
     if filters.issue_types:
         filter_parts.append(f"Tipos: {', '.join(filters.issue_types)}")
+    
+    # Get selected teams from session state
+    selected_teams = st.session_state.get("selected_teams", [])
+    if selected_teams:
+        filter_parts.append(f"Times: {', '.join(selected_teams)}")
+    
     if filters.date_range:
         if filters.date_range.start:
             filter_parts.append(f"De: {filters.date_range.start.strftime('%d/%m/%Y')}")
@@ -1470,6 +1602,29 @@ def render_dashboard_content(
     
     if not issues:
         st.warning(f"Nenhuma issue encontrada para os projetos selecionados no período especificado.")
+        return
+    
+    # Filter issues by team if teams are selected
+    if selected_teams:
+        teams = load_teams()
+        team_members = []
+        for team_name in selected_teams:
+            team_members.extend(get_team_members_by_name(teams, team_name))
+        team_members_lower = [m.lower() for m in team_members]
+        
+        filtered_issues = []
+        for issue in issues:
+            if issue.assignee_name:
+                assignee_lower = issue.assignee_name.lower()
+                # Check if assignee matches any team member
+                for member in team_members_lower:
+                    if member in assignee_lower or assignee_lower in member:
+                        filtered_issues.append(issue)
+                        break
+        issues = filtered_issues
+    
+    if not issues:
+        st.warning(f"Nenhuma issue encontrada para os times selecionados.")
         return
     
     st.success(f"✅ {len(issues)} issues carregadas")
@@ -1610,11 +1765,12 @@ def main():
         unsafe_allow_html=True
     )
     
-    # Main content area with tabs (Dashboard, Professional View, Legacy, Configuration)
-    tab_dashboard, tab_professional, tab_legacy, tab_config = st.tabs([
+    # Main content area with tabs (Dashboard, Professional View, Legacy, Teams, Configuration)
+    tab_dashboard, tab_professional, tab_legacy, tab_teams, tab_config = st.tabs([
         "📊 Visão por Projeto", 
         "👤 Visão por Profissional",
         "📋 Legado",
+        "👥 Times",
         "⚙️ Configuração"
     ])
     
@@ -1624,6 +1780,9 @@ def main():
     
     with tab_config:
         render_configuration_page(config, connection_status)
+    
+    with tab_teams:
+        render_teams_page()
     
     with tab_dashboard:
         filters = render_inline_filters(projects, sprints)
@@ -1654,8 +1813,13 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
     Returns:
         Filters object with selected values
     """
+    # Load teams
+    teams = load_teams()
+    team_names = get_team_names(teams)
+    
     with st.expander("🔍 Filtros", expanded=True):
-        col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 1.5, 1.5, 1.5, 0.8])
+        # First row: Project, Sprint, Team
+        col1, col2, col3 = st.columns([2, 2, 2])
         
         with col1:
             # Project filter
@@ -1677,7 +1841,6 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
         with col2:
             # Sprint filter - only enabled when projects are selected
             if not selected_projects:
-                # No project selected - show disabled empty multiselect
                 selected_sprint_ids = st.multiselect(
                     "Sprints",
                     options=[],
@@ -1687,7 +1850,6 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                     placeholder="Selecione um projeto primeiro"
                 )
             else:
-                # Projects selected - load sprints for those projects
                 available_sprints = []
                 if "connector" in st.session_state and st.session_state.connector:
                     from src.cache.cache_manager import CacheManager
@@ -1710,7 +1872,6 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                                     except:
                                         pass
                     
-                    # Remove duplicates
                     seen_ids = set()
                     unique_sprints = []
                     for sprint in all_sprints:
@@ -1718,7 +1879,6 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                             seen_ids.add(sprint.jira_id)
                             unique_sprints.append(sprint)
                     
-                    # Sort sprints
                     state_order = {"active": 0, "future": 1, "closed": 2}
                     unique_sprints.sort(key=lambda s: (
                         state_order.get(s.state, 3),
@@ -1738,7 +1898,19 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                 )
         
         with col3:
-            # Tipo de item filter
+            # Team filter
+            selected_teams = st.multiselect(
+                "Time",
+                options=team_names,
+                key="inline_filter_teams",
+                help="Filtrar por time (deixe vazio para todos)",
+                placeholder="Todos os times"
+            )
+        
+        # Second row: Type, Date Start, Date End, Clear
+        col4, col5, col6, col7 = st.columns([2, 1.5, 1.5, 0.8])
+        
+        with col4:
             issue_type_options = ["Bug", "Task", "Sub-task", "Story", "Improvement", "Epic"]
             selected_issue_types = st.multiselect(
                 "Tipo de Item",
@@ -1748,8 +1920,7 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                 placeholder="Todos os tipos"
             )
         
-        with col4:
-            # Data início
+        with col5:
             start_date = st.date_input(
                 "Data Início",
                 value=None,
@@ -1757,8 +1928,7 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                 help="Filtrar issues criadas a partir desta data"
             )
         
-        with col5:
-            # Data fim
+        with col6:
             end_date = st.date_input(
                 "Data Fim",
                 value=None,
@@ -1766,11 +1936,14 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                 help="Filtrar issues criadas até esta data"
             )
         
-        with col6:
-            st.write("")  # Spacer
-            st.write("")  # Spacer
+        with col7:
+            st.write("")
+            st.write("")
             if st.button("🗑️ Limpar", key="inline_clear_filters"):
                 st.rerun()
+    
+    # Store selected teams in session state for filtering
+    st.session_state.selected_teams = selected_teams
     
     # Build date range if dates are selected
     date_range = None

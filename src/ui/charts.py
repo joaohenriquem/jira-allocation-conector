@@ -441,7 +441,7 @@ def render_trend_chart(
         height=350,
     )
     
-    st.plotly_chart(fig, key="trend_chart")
+    st.plotly_chart(fig, use_container_width=True)
 
 
 # =============================================================================
