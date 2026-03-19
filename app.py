@@ -69,6 +69,62 @@ APP_VERSION = "1.0.0"
 
 
 # =============================================================================
+# Access Control
+# =============================================================================
+
+def check_access() -> bool:
+    """
+    Check if user has access to the application.
+    Returns True if authenticated, False otherwise.
+    """
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    
+    if st.session_state.authenticated:
+        return True
+    
+    # Show login dialog
+    st.markdown(
+        """
+        <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 2rem;
+            background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("### 🔐 Acesso ao Sistema")
+        st.markdown("Digite seu email corporativo para continuar.")
+        
+        with st.form("login_form"):
+            email = st.text_input("Email", placeholder="seu.email@empresa.com.br")
+            submitted = st.form_submit_button("Entrar", use_container_width=True)
+            
+            if submitted:
+                if email:
+                    email_lower = email.lower().strip()
+                    if email_lower.endswith("@sejaefi.com.br") or email_lower.endswith("@gerencianet.com.br"):
+                        st.session_state.authenticated = True
+                        st.session_state.user_email = email_lower
+                        st.rerun()
+                    else:
+                        st.error("Email não autorizado.")
+                else:
+                    st.warning("Por favor, digite seu email.")
+    
+    return False
+
+
+# =============================================================================
 # Session State Initialization (Task 9.1)
 # =============================================================================
 
@@ -1320,6 +1376,10 @@ def render_dashboard_content(
 
 def main():
     """Main application entry point."""
+    # Check access first
+    if not check_access():
+        return
+    
     # Initialize session state
     init_session_state()
     
