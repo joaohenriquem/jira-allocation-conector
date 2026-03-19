@@ -1251,27 +1251,14 @@ def render_professional_view_tab(
         st.info("ℹ️ Nenhum projeto disponível.")
         return
     
-    # Date filters, professional selector and refresh button
+    # Filtros em linha única
     with st.expander("🔍 Filtros", expanded=True):
-        col1, col2 = st.columns(2)
+        col1, col2, col3, col4 = st.columns([3, 1.5, 1.5, 1])
         
-        with col1:
-            prof_start_date = st.date_input(
-                "Data Início",
-                value=None,
-                key="prof_filter_start_date",
-                help="Filtrar issues criadas a partir desta data"
-            )
+        # Get date range from session state
+        prof_start_date = st.session_state.get("prof_filter_start_date")
+        prof_end_date = st.session_state.get("prof_filter_end_date")
         
-        with col2:
-            prof_end_date = st.date_input(
-                "Data Fim",
-                value=None,
-                key="prof_filter_end_date",
-                help="Filtrar issues criadas até esta data"
-            )
-        
-        # Build date range for professional view
         prof_date_range = None
         if prof_start_date or prof_end_date:
             prof_date_range = DateRange(
@@ -1279,21 +1266,20 @@ def render_professional_view_tab(
                 end=prof_end_date
             )
         
-        # Load professionals with date filter
-        try:
-            professionals = get_all_professionals_cached(
-                connector=connector,
-                project_keys=project_keys,
-                default_capacity=default_capacity,
-                base_url=jira_base_url,
-                date_range=prof_date_range
-            )
-        except Exception as e:
-            st.error(f"❌ Erro ao carregar profissionais: {str(e)}")
-            return
-        
-        # Professional selector
-        col1, col2 = st.columns([3, 1])
+        # Load professionals with loading animation
+        professionals = None
+        with st.spinner("Carregando profissionais..."):
+            try:
+                professionals = get_all_professionals_cached(
+                    connector=connector,
+                    project_keys=project_keys,
+                    default_capacity=default_capacity,
+                    base_url=jira_base_url,
+                    date_range=prof_date_range
+                )
+            except Exception as e:
+                st.error(f"❌ Erro ao carregar profissionais: {str(e)}")
+                return
         
         with col1:
             if professionals:
@@ -1304,7 +1290,7 @@ def render_professional_view_tab(
                 account_ids = [""] + list(prof_options.keys())
                 
                 selected_professional_id = st.selectbox(
-                    "👤 Profissional",
+                    "Profissional",
                     options=account_ids,
                     format_func=lambda x: "Selecione um profissional..." if not x else prof_options.get(x, x),
                     key="prof_filter_professional"
@@ -1314,12 +1300,36 @@ def render_professional_view_tab(
                 st.info("Nenhum profissional disponível.")
         
         with col2:
+            prof_start_date = st.date_input(
+                "Data Início",
+                value=None,
+                key="prof_filter_start_date",
+                help="Filtrar issues criadas a partir desta data"
+            )
+        
+        with col3:
+            prof_end_date = st.date_input(
+                "Data Fim",
+                value=None,
+                key="prof_filter_end_date",
+                help="Filtrar issues criadas até esta data"
+            )
+        
+        with col4:
             st.write("")  # Spacer
             st.write("")  # Spacer
-            if st.button("🔄 Atualizar", key="refresh_professionals"):
+            if st.button("🔄", key="refresh_professionals", help="Atualizar dados"):
                 clear_professionals_cache()
                 st.session_state.professionals_preload_started = False
                 st.rerun()
+    
+    # Rebuild date range after inputs
+    prof_date_range = None
+    if prof_start_date or prof_end_date:
+        prof_date_range = DateRange(
+            start=prof_start_date,
+            end=prof_end_date
+        )
     
     # Show active filter info
     filter_parts = []
@@ -1327,10 +1337,11 @@ def render_professional_view_tab(
         filter_parts.append(f"De: {prof_start_date.strftime('%d/%m/%Y')}")
     if prof_end_date:
         filter_parts.append(f"Até: {prof_end_date.strftime('%d/%m/%Y')}")
-    if filter_parts:
-        st.caption(f"🔍 {' | '.join(filter_parts)}")
     
-    st.caption(f"📁 {len(project_keys)} projetos | 👥 {len(professionals)} profissionais")
+    info_text = f"📁 {len(project_keys)} projetos | 👥 {len(professionals) if professionals else 0} profissionais"
+    if filter_parts:
+        info_text += f" | 🔍 {' - '.join(filter_parts)}"
+    st.caption(info_text)
     
     # Check if professional is selected
     if not selected_professional_id:
