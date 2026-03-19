@@ -72,6 +72,72 @@ APP_VERSION = "1.0.0"
 # Access Control
 # =============================================================================
 
+def get_allowed_ips() -> list:
+    """
+    Get list of allowed IPs from secrets or environment.
+    Returns empty list if IP filtering is disabled.
+    """
+    try:
+        # Try Streamlit secrets first
+        allowed_ips = st.secrets.get("ALLOWED_IPS", "")
+    except Exception:
+        # Fallback to environment variable
+        import os
+        allowed_ips = os.getenv("ALLOWED_IPS", "")
+    
+    if not allowed_ips:
+        return []
+    
+    # Parse comma-separated IPs
+    return [ip.strip() for ip in allowed_ips.split(",") if ip.strip()]
+
+
+def get_client_ip() -> str:
+    """
+    Get client IP address using external service.
+    Returns empty string if unable to determine.
+    """
+    import urllib.request
+    import json
+    
+    try:
+        # Use ipify API to get client IP
+        with urllib.request.urlopen("https://api.ipify.org?format=json", timeout=5) as response:
+            data = json.loads(response.read().decode())
+            return data.get("ip", "")
+    except Exception:
+        try:
+            # Fallback to httpbin
+            with urllib.request.urlopen("https://httpbin.org/ip", timeout=5) as response:
+                data = json.loads(response.read().decode())
+                return data.get("origin", "").split(",")[0].strip()
+        except Exception:
+            return ""
+
+
+def check_ip_access() -> tuple[bool, str]:
+    """
+    Check if client IP is allowed.
+    Returns (is_allowed, client_ip).
+    If no IPs configured, allows all.
+    """
+    allowed_ips = get_allowed_ips()
+    
+    # If no IPs configured, skip IP check
+    if not allowed_ips:
+        return True, ""
+    
+    client_ip = get_client_ip()
+    
+    if not client_ip:
+        # Could not determine IP - deny access for security
+        return False, "desconhecido"
+    
+    # Check if client IP is in allowed list
+    is_allowed = client_ip in allowed_ips
+    return is_allowed, client_ip
+
+
 def check_access() -> bool:
     """
     Check if user has access to the application.
@@ -82,6 +148,19 @@ def check_access() -> bool:
     
     if st.session_state.authenticated:
         return True
+    
+    # Check IP first
+    if "ip_checked" not in st.session_state:
+        with st.spinner("Verificando acesso..."):
+            ip_allowed, client_ip = check_ip_access()
+            st.session_state.ip_checked = True
+            st.session_state.ip_allowed = ip_allowed
+            st.session_state.client_ip = client_ip
+    
+    if not st.session_state.ip_allowed:
+        st.error("🚫 Acesso não autorizado.")
+        st.stop()
+        return False
     
     # Show login dialog
     st.markdown(
@@ -356,6 +435,12 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
         sorted_sprint_ids = sorted(filters.sprint_ids)
         sprint_ids_str = ", ".join(str(sid) for sid in sorted_sprint_ids)
         jql_parts.append(f"sprint IN ({sprint_ids_str})")
+    
+    # Issue type filter
+    if filters.issue_types:
+        sorted_types = sorted(filters.issue_types)
+        types_str = ", ".join(f'"{t}"' for t in sorted_types)
+        jql_parts.append(f"issuetype IN ({types_str})")
     
     # Date range filter
     if filters.date_range:
@@ -1327,6 +1412,8 @@ def render_dashboard_content(
     filter_parts = [f"Projetos: {', '.join(filters.project_keys)}"]
     if filters.sprint_ids:
         filter_parts.append(f"Sprints: {len(filters.sprint_ids)} selecionada(s)")
+    if filters.issue_types:
+        filter_parts.append(f"Tipos: {', '.join(filters.issue_types)}")
     if filters.date_range:
         if filters.date_range.start:
             filter_parts.append(f"De: {filters.date_range.start.strftime('%d/%m/%Y')}")
@@ -1524,7 +1611,7 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
         Filters object with selected values
     """
     with st.expander("🔍 Filtros", expanded=True):
-        col1, col2, col3, col4, col5 = st.columns([2, 2, 1.5, 1.5, 0.8])
+        col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 1.5, 1.5, 1.5, 0.8])
         
         with col1:
             # Project filter
@@ -1607,6 +1694,17 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                 )
         
         with col3:
+            # Tipo de item filter
+            issue_type_options = ["Bug", "Task", "Sub-task", "Story", "Improvement", "Epic"]
+            selected_issue_types = st.multiselect(
+                "Tipo de Item",
+                options=issue_type_options,
+                key="inline_filter_issue_types",
+                help="Deixe vazio para todos os tipos",
+                placeholder="Todos os tipos"
+            )
+        
+        with col4:
             # Data início
             start_date = st.date_input(
                 "Data Início",
@@ -1615,7 +1713,7 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                 help="Filtrar issues criadas a partir desta data"
             )
         
-        with col4:
+        with col5:
             # Data fim
             end_date = st.date_input(
                 "Data Fim",
@@ -1624,7 +1722,7 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                 help="Filtrar issues criadas até esta data"
             )
         
-        with col5:
+        with col6:
             st.write("")  # Spacer
             st.write("")  # Spacer
             if st.button("🗑️ Limpar", key="inline_clear_filters"):
@@ -1642,7 +1740,8 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
         project_keys=selected_projects,
         sprint_ids=selected_sprint_ids,
         date_range=date_range,
-        assignees=[]
+        assignees=[],
+        issue_types=selected_issue_types
     )
 
 

@@ -367,8 +367,8 @@ class WeeklyAllocation:
 @dataclass
 class DateRange:
     """Date range for filtering."""
-    start: date
-    end: date
+    start: Optional[date] = None
+    end: Optional[date] = None
 
 
 @dataclass
@@ -378,6 +378,7 @@ class Filters:
     sprint_ids: List[int] = field(default_factory=list)
     date_range: Optional[DateRange] = None
     assignees: List[str] = field(default_factory=list)
+    issue_types: List[str] = field(default_factory=list)
 
 
 @dataclass

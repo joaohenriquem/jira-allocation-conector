@@ -471,6 +471,17 @@ def render_filters_sidebar(
             else:
                 st.info("Selecione um projeto para ver os sprints")
         
+        # Issue type filter
+        st.subheader("Tipo de Item")
+        issue_type_options = ["Bug", "Task", "Sub-task", "Story", "Improvement", "Epic"]
+        selected_issue_types = st.multiselect(
+            "Selecione os tipos",
+            options=issue_type_options,
+            key="filter_issue_types",
+            placeholder="Todos os tipos",
+            help="Deixe vazio para mostrar todos os tipos"
+        )
+        
         # Clear filters button
         st.divider()
         if st.button("🗑️ Limpar Filtros", key="clear_filters_btn"):
@@ -486,7 +497,8 @@ def render_filters_sidebar(
                 project_keys=[],
                 sprint_ids=[],
                 date_range=None,
-                assignees=[]
+                assignees=[],
+                issue_types=[]
             )
         
         # Help section
@@ -496,7 +508,8 @@ def render_filters_sidebar(
             **Como usar os filtros:**
             1. Selecione um ou mais projetos
             2. Escolha os sprints desejados
-            3. Os dados serão atualizados automaticamente
+            3. Opcionalmente, filtre por tipo de item
+            4. Os dados serão atualizados automaticamente
             
             **Nota:** Estes filtros se aplicam apenas à aba "Visão por Projeto".
             A aba "Visão por Profissional" carrega todos os profissionais de todos os projetos.
@@ -506,7 +519,8 @@ def render_filters_sidebar(
         project_keys=selected_projects,
         sprint_ids=selected_sprint_ids,
         date_range=None,
-        assignees=[]
+        assignees=[],
+        issue_types=selected_issue_types
     )
 
 

@@ -132,13 +132,14 @@ def _render_legacy_filters(projects: List[Project]):
             )
         
         with col2:
-            # Filtro de tipo
-            tipo_options = ["", "Bug", "Task", "Sub-task", "Story", "Improvement", "Epic"]
-            st.selectbox(
-                "Tipo",
+            # Filtro de tipo - múltipla seleção
+            tipo_options = ["Bug", "Task", "Sub-task", "Story", "Improvement", "Epic"]
+            st.multiselect(
+                "Tipo de Item",
                 options=tipo_options,
-                format_func=lambda x: "Todos" if x == "" else x,
-                key="legacy_tipo"
+                key="legacy_tipos",
+                help="Selecione os tipos de item (vazio = todos)",
+                placeholder="Todos os tipos"
             )
         
         with col3:
@@ -186,7 +187,7 @@ def _load_filtered_issues(connector: JiraConnector, config: Any) -> List[Issue]:
     if not projects:
         return []
     
-    tipo = st.session_state.get('legacy_tipo', "")
+    tipos = st.session_state.get('legacy_tipos', [])
     status = st.session_state.get('legacy_status', "")
     year = st.session_state.get('legacy_year', "")
     month = st.session_state.get('legacy_month', "")
@@ -194,8 +195,9 @@ def _load_filtered_issues(connector: JiraConnector, config: Any) -> List[Issue]:
     # Construir JQL
     jql_parts = [f"project IN ({', '.join(projects)})"]
     
-    if tipo:
-        jql_parts.append(f'issuetype = "{tipo}"')
+    if tipos:
+        tipos_str = ', '.join(f'"{t}"' for t in tipos)
+        jql_parts.append(f'issuetype IN ({tipos_str})')
     
     if status:
         if status == "Done":
