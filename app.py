@@ -1502,11 +1502,6 @@ def render_professional_view_tab(
         info_text += f" | 🔍 {' - '.join(filter_parts)}"
     st.caption(info_text)
     
-    # Check if professional is selected
-    if not selected_professional_id:
-        st.info("👆 Selecione um profissional no filtro acima para visualizar sua alocação.")
-        return
-    
     # Instantiate ProfessionalMetricsEngine for rendering
     try:
         metrics_engine = ProfessionalMetricsEngine(
@@ -1519,11 +1514,33 @@ def render_professional_view_tab(
         st.error(f"❌ Erro ao inicializar engine de métricas: {str(e)}")
         return
     
+    # If team is selected, show all professionals from that team
+    if prof_selected_team and professionals:
+        st.subheader(f"👥 Time: {prof_selected_team}")
+        st.caption(f"{len(professionals)} profissionais no time")
+        
+        # Render each professional in the team
+        for idx, prof in enumerate(professionals):
+            with st.expander(f"👤 {prof.display_name}", expanded=False):
+                render_professional_view_content(
+                    selected_professional_id=prof.account_id,
+                    professionals=professionals,
+                    metrics_engine=metrics_engine,
+                    key_suffix=f"_team_{idx}"
+                )
+        return
+    
+    # Check if professional is selected (when no team filter)
+    if not selected_professional_id:
+        st.info("👆 Selecione um profissional ou um time no filtro acima para visualizar a alocação.")
+        return
+    
     # Render the professional view content (without the selector, which is now in filters)
     render_professional_view_content(
         selected_professional_id=selected_professional_id,
         professionals=professionals,
-        metrics_engine=metrics_engine
+        metrics_engine=metrics_engine,
+        key_suffix="_single"
     )
 
 

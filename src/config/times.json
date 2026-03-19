@@ -99,5 +99,44 @@
       { "nome": "Rafael Silva", "funcao": "Pix - SPI" },
       { "nome": "Gabriel Santos", "funcao": "Pix - SPI" }
     ]
+  },
+  {
+    "time": "Cartões",
+    "techLeader": "Lucas Henrique Moreira Silva",
+    "membros": [
+      { "nome": "Larissa Maria Santiago Correia", "funcao": "Cartões" },
+      { "nome": "Valmir Rodrigues Bueno Junior", "funcao": "Cartões" },
+      { "nome": "Ana Paula Fonseca Bornachi", "funcao": "Cartões" },
+      { "nome": "Marcelo Nepomuceno da Silva", "funcao": "Cartões" },
+      { "nome": "Warlen Marcio Pinheiro", "funcao": "Cartões" }
+    ]
+  },
+  {
+    "time": "Motor",
+    "techLeader": "Isabelle Koga",
+    "membros": [
+      { "nome": "Demontie da Costa Ferreira", "funcao": "Motor" },
+      { "nome": "Mateus Sebastiao Juvencio", "funcao": "Motor" },
+      { "nome": "Andreza Christiane Moreira", "funcao": "Motor" }
+    ]
+  },
+  {
+    "time": "Investimento e Seguro",
+    "techLeader": "Lucas Oliveira Costa",
+    "membros": [
+      { "nome": "Mauricio Eduardo Loschi Batista", "funcao": "Investimento" },
+      { "nome": "Gabriel Roberto Moreira dos Santos", "funcao": "Investimento" },
+      { "nome": "Filipe Maia da Silva Rodrigues", "funcao": "Seguro" }
+    ]
+  },
+  {
+    "time": "Produtos Crédito",
+    "techLeader": "Bernardo Marotta de Rezende",
+    "membros": [
+      { "nome": "Caio Vinicius Pecanha de Morais Messias", "funcao": "Antecipação" },
+      { "nome": "Pedro Alves Euzebio", "funcao": "Antecipação" },
+      { "nome": "Andrei Santos da Silva Silva", "funcao": "Capital" },
+      { "nome": "Mateus Martins Pereira", "funcao": "Capital" }
+    ]
   }
 ]
