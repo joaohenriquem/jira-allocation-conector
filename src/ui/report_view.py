@@ -46,8 +46,8 @@ def _build_issues_dataframe(issues: List[Issue]) -> pd.DataFrame:
             "Criado": issue.created_date.strftime("%d/%m/%Y %H:%M") if issue.created_date else "",
             "Início": issue.started_date.strftime("%d/%m/%Y %H:%M") if issue.started_date else "",
             "Resolvido": issue.resolution_date.strftime("%d/%m/%Y %H:%M") if issue.resolution_date else "",
-            "Lead Time (dias)": lead_time if lead_time is not None else "",
-            "Cycle Time (dias)": cycle_time if cycle_time is not None else "",
+            "Lead Time (dias)": lead_time if lead_time is not None else None,
+            "Cycle Time (dias)": cycle_time if cycle_time is not None else None,
         })
     
     return pd.DataFrame(rows)
