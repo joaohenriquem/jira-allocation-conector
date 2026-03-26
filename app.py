@@ -250,10 +250,21 @@ def check_access() -> bool:
         st.markdown("### Acesso ao Sistema")
         st.markdown("Digite seu email corporativo para continuar.")
         
-        # Show client IP
+        # Show client IP from multiple sources
         client_ip = st.session_state.get("client_ip", "")
-        if client_ip:
-            st.caption(f"🌐 Seu IP: `{client_ip}`")
+        if not client_ip:
+            # Try Streamlit headers
+            try:
+                client_ip = st.context.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+            except Exception:
+                pass
+        if not client_ip:
+            try:
+                client_ip = st.context.headers.get("X-Real-Ip", "")
+            except Exception:
+                pass
+        
+        st.caption(f"🌐 IP: `{client_ip}`" if client_ip else "🌐 IP: não identificado")
         
         with st.form("login_form"):
             email = st.text_input("Email", placeholder="seu.email@empresa.com.br")
