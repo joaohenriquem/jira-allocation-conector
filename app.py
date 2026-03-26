@@ -259,6 +259,11 @@ def check_access() -> bool:
         st.markdown("### Acesso ao Sistema")
         st.markdown("Digite seu email corporativo para continuar.")
         
+        # Show client IP
+        client_ip = st.session_state.get("client_ip", "")
+        if client_ip:
+            st.caption(f"🌐 Seu IP: `{client_ip}`")
+        
         with st.form("login_form"):
             email = st.text_input("Email", placeholder="seu.email@empresa.com.br")
             submitted = st.form_submit_button("Entrar", use_container_width=True, type="primary")
