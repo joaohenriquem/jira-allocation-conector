@@ -1956,6 +1956,9 @@ def main():
             report_proj_key = str(sorted(report_selected_projects)) if report_selected_projects else ""
             if report_proj_key and report_proj_key != st.session_state.get("report_last_proj_key", ""):
                 st.session_state.report_last_proj_key = report_proj_key
+                # Clear previous results when project changes
+                st.session_state.pop("report_issues", None)
+                st.session_state.pop("ai_analysis_result", None)
                 # Quick fetch to populate filter options
                 _report_date_range = None
                 if report_start or report_end:
@@ -1979,9 +1982,10 @@ def main():
                 st.session_state.report_available_statuses = []
                 st.session_state.report_available_teams = []
                 st.session_state.pop("report_issues", None)
+                st.session_state.pop("ai_analysis_result", None)
             
             # Secondary filters row
-            rc4, rc5, rc6, rc7 = st.columns([2, 2, 2, 1])
+            rc4, rc5, rc6, rc7, rc8 = st.columns([2, 2, 2, 1, 1])
             
             with rc4:
                 report_type_filter = st.multiselect(
@@ -2011,9 +2015,29 @@ def main():
                 st.write("")
                 st.write("")
                 report_search = st.button("🔍 Consultar", key="btn_report_search", type="primary", use_container_width=True)
+            
+            with rc8:
+                st.write("")
+                st.write("")
+                report_clear = st.button("🗑️ Limpar", key="btn_report_clear", use_container_width=True)
+        
+        # Handle clear button
+        if report_clear:
+            for k in ["report_issues", "report_last_proj_key", "report_available_types",
+                       "report_available_statuses", "report_available_teams", "ai_analysis_result",
+                       "ai_analysis_prompt"]:
+                st.session_state.pop(k, None)
+            st.rerun()
+        
+        # Detect filter changes and clear results
+        _current_filter_sig = f"{report_type_filter}_{report_status_filter}_{report_team_filter}"
+        if _current_filter_sig != st.session_state.get("report_filter_sig", ""):
+            st.session_state.report_filter_sig = _current_filter_sig
+            st.session_state.pop("ai_analysis_result", None)
         
         # Reload data when Consultar is clicked (applies date filters)
         if report_search and report_selected_projects:
+            st.session_state.pop("ai_analysis_result", None)
             report_date_range = None
             if report_start or report_end:
                 report_date_range = DateRange(start=report_start, end=report_end)
