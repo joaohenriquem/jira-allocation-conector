@@ -518,22 +518,46 @@ def render_professional_view_content(
     
     # Show detailed issues per project in expander
     with st.expander("📋 Ver issues por projeto", key=f"issues_expander{key_suffix}"):
+        # Collect all unique statuses from all projects
+        all_statuses = set()
         for proj in allocation.project_breakdown:
-            st.markdown(f"**{proj.project_name or proj.project_key}** ({proj.issue_count} issues)")
-            
             if proj.issues:
+                for issue in proj.issues:
+                    if issue.status:
+                        all_statuses.add(issue.status)
+        
+        # Status filter
+        status_options = sorted(list(all_statuses))
+        selected_statuses = st.multiselect(
+            "Filtrar por Status",
+            options=status_options,
+            default=[],
+            key=f"status_filter{key_suffix}",
+            placeholder="Todos os status"
+        )
+        
+        for proj in allocation.project_breakdown:
+            # Filter issues by status if filter is active
+            filtered_issues = proj.issues
+            if selected_statuses and proj.issues:
+                filtered_issues = [i for i in proj.issues if i.status in selected_statuses]
+            
+            issue_count = len(filtered_issues) if filtered_issues else 0
+            st.markdown(f"**{proj.project_name or proj.project_key}** ({issue_count} issues)")
+            
+            if filtered_issues:
                 # Create a simple table with issue details
                 issue_data = []
-                for issue in proj.issues:
+                for issue in filtered_issues:
                     from src.models.data_models import get_tshirt_size_label
                     issue_data.append({
                         "Chave": issue.key,
                         "Resumo": issue.summary[:50] + "..." if len(issue.summary) > 50 else issue.summary,
                         "Status": issue.status,
                         "Tamanho": get_tshirt_size_label(issue.t_shirt_size),
-                        "Criado": issue.created_date.strftime("%d/%m/%Y") if issue.created_date else "-",
-                        "Início": issue.started_date.strftime("%d/%m/%Y") if issue.started_date else "-",
-                        "Fim": issue.resolution_date.strftime("%d/%m/%Y") if issue.resolution_date else "-"
+                        "Criado": issue.created_date.strftime("%d/%m/%Y %H:%M") if issue.created_date else "-",
+                        "Início": issue.started_date.strftime("%d/%m/%Y %H:%M") if issue.started_date else "-",
+                        "Fim": issue.resolution_date.strftime("%d/%m/%Y %H:%M") if issue.resolution_date else "-"
                     })
                 
                 if issue_data:

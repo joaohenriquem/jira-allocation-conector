@@ -645,7 +645,7 @@ def _render_backlog_table(issues: List[Issue]):
                     "Resumo": issue.summary or "",
                     "Responsável": issue.assignee_name or "",
                     "Status": issue.status or "",
-                    "Criado": issue.created_date.strftime("%Y-%m-%d") if issue.created_date else ""
+                    "Criado": issue.created_date.strftime("%d/%m/%Y %H:%M") if issue.created_date else ""
                 })
             
             df_export = pd.DataFrame(export_data)
@@ -669,9 +669,9 @@ def _render_backlog_table(issues: List[Issue]):
                 "Resumo": (issue.summary[:60] + "...") if issue.summary and len(issue.summary) > 60 else (issue.summary or ""),
                 "Responsável": issue.assignee_name or "Sem responsável",
                 "Status": issue.status or "",
-                "Criado": issue.created_date.strftime("%d/%m/%Y") if issue.created_date else "-",
-                "Início": issue.started_date.strftime("%d/%m/%Y") if issue.started_date else "-",
-                "Fim": issue.resolution_date.strftime("%d/%m/%Y") if issue.resolution_date else "-"
+                "Criado": issue.created_date.strftime("%d/%m/%Y %H:%M") if issue.created_date else "-",
+                "Início": issue.started_date.strftime("%d/%m/%Y %H:%M") if issue.started_date else "-",
+                "Fim": issue.resolution_date.strftime("%d/%m/%Y %H:%M") if issue.resolution_date else "-"
             })
         
         st.dataframe(

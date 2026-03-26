@@ -102,41 +102,41 @@
   },
   {
     "time": "Cartões",
-    "techLeader": "Lucas Henrique Moreira Silva",
+    "techLeader": "Lucas Silva",
     "membros": [
-      { "nome": "Larissa Maria Santiago Correia", "funcao": "Cartões" },
-      { "nome": "Valmir Rodrigues Bueno Junior", "funcao": "Cartões" },
-      { "nome": "Ana Paula Fonseca Bornachi", "funcao": "Cartões" },
-      { "nome": "Marcelo Nepomuceno da Silva", "funcao": "Cartões" },
-      { "nome": "Warlen Marcio Pinheiro", "funcao": "Cartões" }
+      { "nome": "Larissa Correia", "funcao": "Cartões" },
+      { "nome": "Valmir Junior", "funcao": "Cartões" },
+      { "nome": "Ana Bornachi", "funcao": "Cartões" },
+      { "nome": "Marcelo Silva", "funcao": "Cartões" },
+      { "nome": "Warlen Pinheiro", "funcao": "Cartões" }
     ]
   },
   {
     "time": "Motor",
     "techLeader": "Isabelle Koga",
     "membros": [
-      { "nome": "Demontie da Costa Ferreira", "funcao": "Motor" },
-      { "nome": "Mateus Sebastiao Juvencio", "funcao": "Motor" },
-      { "nome": "Andreza Christiane Moreira", "funcao": "Motor" }
+      { "nome": "Demontie Ferreira", "funcao": "Motor" },
+      { "nome": "Mateus Juvencio", "funcao": "Motor" },
+      { "nome": "Andreza Moreira", "funcao": "Motor" }
     ]
   },
   {
     "time": "Investimento e Seguro",
-    "techLeader": "Lucas Oliveira Costa",
+    "techLeader": "Lucas Costa",
     "membros": [
-      { "nome": "Mauricio Eduardo Loschi Batista", "funcao": "Investimento" },
-      { "nome": "Gabriel Roberto Moreira dos Santos", "funcao": "Investimento" },
-      { "nome": "Filipe Maia da Silva Rodrigues", "funcao": "Seguro" }
+      { "nome": "Mauricio Batista", "funcao": "Investimento" },
+      { "nome": "Gabriel Santos", "funcao": "Investimento" },
+      { "nome": "Filipe Rodrigues", "funcao": "Seguro" }
     ]
   },
   {
     "time": "Produtos Crédito",
     "techLeader": "Bernardo Marotta de Rezende",
     "membros": [
-      { "nome": "Caio Vinicius Pecanha de Morais Messias", "funcao": "Antecipação" },
-      { "nome": "Pedro Alves Euzebio", "funcao": "Antecipação" },
-      { "nome": "Andrei Santos da Silva Silva", "funcao": "Capital" },
-      { "nome": "Mateus Martins Pereira", "funcao": "Capital" }
+      { "nome": "Caio Messias", "funcao": "Antecipação" },
+      { "nome": "Pedro Euzebio", "funcao": "Antecipação" },
+      { "nome": "Andrei Silva", "funcao": "Capital" },
+      { "nome": "Mateus Pereira", "funcao": "Capital" }
     ]
   }
 ]
