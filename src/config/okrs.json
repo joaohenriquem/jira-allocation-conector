@@ -1,0 +1,85 @@
+[
+  {
+    "quarter": "Q2 2026",
+    "objective": "Aumentar eficiência e previsibilidade das entregas",
+    "key_results": [
+      {
+        "id": "kr1",
+        "description": "Reduzir lead time médio do ciclo completo para 15 dias",
+        "metric": "lead_time_avg",
+        "target": 15,
+        "unit": "dias",
+        "direction": "decrease",
+        "tab": "cycle"
+      },
+      {
+        "id": "kr2",
+        "description": "Atingir taxa de conclusão de 80% das issues por sprint",
+        "metric": "completion_rate",
+        "target": 80,
+        "unit": "%",
+        "direction": "increase",
+        "tab": "cycle"
+      },
+      {
+        "id": "kr3",
+        "description": "Reduzir issues em handoff para no máximo 10% do total",
+        "metric": "handoff_rate",
+        "target": 10,
+        "unit": "%",
+        "direction": "decrease",
+        "tab": "cycle"
+      }
+    ]
+  },
+  {
+    "quarter": "Q2 2026",
+    "objective": "Reduzir carga operacional nos times de engenharia",
+    "key_results": [
+      {
+        "id": "kr4",
+        "description": "Mapear e classificar 100% das atividades de suporte",
+        "metric": "support_mapped",
+        "target": 100,
+        "unit": "%",
+        "direction": "increase",
+        "tab": "report"
+      },
+      {
+        "id": "kr5",
+        "description": "Migrar 50% das atividades de suporte para o time de operações",
+        "metric": "support_migrated",
+        "target": 50,
+        "unit": "%",
+        "direction": "increase",
+        "tab": "report"
+      }
+    ]
+  },
+  {
+    "quarter": "Q2 2026",
+    "objective": "Melhorar distribuição de carga entre os times",
+    "key_results": [
+      {
+        "id": "kr6",
+        "description": "Reduzir membros sobrecarregados (>100% alocação) para zero",
+        "metric": "overloaded_members",
+        "target": 0,
+        "unit": "membros",
+        "direction": "decrease",
+        "tab": "project"
+      },
+      {
+        "id": "kr7",
+        "description": "Manter taxa média de alocação entre 70% e 90%",
+        "metric": "avg_allocation",
+        "target": 80,
+        "unit": "%",
+        "direction": "target_range",
+        "range_min": 70,
+        "range_max": 90,
+        "tab": "project"
+      }
+    ]
+  }
+]

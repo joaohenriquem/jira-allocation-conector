@@ -17,6 +17,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# Initialize Sentry for error monitoring (before other imports)
+from src.utils.sentry_config import init_sentry, capture_exception, set_user_context
+sentry_initialized = init_sentry()
+
 # Application imports
 from src.config.config_loader import ConfigLoader
 from src.connector.jira_connector import JiraConnector
@@ -48,6 +52,8 @@ from src.ui.charts import (
 )
 from src.ui.professional_view import render_professional_view, render_professional_view_content
 from src.ui.legacy_view import render_legacy_view
+from src.ui.cycle_view import render_cycle_view_tab
+from src.ui.report_view import render_report_tab
 from src.metrics.professional_metrics import ProfessionalMetricsEngine
 from src.config.teams_loader import load_teams, get_team_names, get_team_members_by_name, find_team_for_member
 from src.models.data_models import (
@@ -139,15 +145,50 @@ def check_ip_access() -> tuple[bool, str]:
     return is_allowed, client_ip
 
 
+def _is_localhost() -> bool:
+    """Check if the app is running on localhost."""
+    try:
+        # Try Streamlit context headers first
+        host = st.context.headers.get("Host", "")
+        if host.startswith("localhost") or host.startswith("127.0.0.1"):
+            return True
+    except Exception:
+        pass
+    
+    # Fallback: check if running locally via common indicators
+    import os
+    # Streamlit Cloud sets specific env vars
+    if os.getenv("STREAMLIT_SHARING_MODE"):
+        return False
+    if os.getenv("HOSTNAME", "").endswith(".streamlit.app"):
+        return False
+    
+    # If none of the cloud indicators are present, assume localhost
+    return not os.getenv("STREAMLIT_SERVER_ADDRESS") or \
+           os.getenv("STREAMLIT_SERVER_ADDRESS", "localhost") in ("localhost", "127.0.0.1", "0.0.0.0")
+
+
 def check_access() -> bool:
     """
     Check if user has access to the application.
     Returns True if authenticated, False otherwise.
+    Skips authentication on localhost.
     """
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
     
+    # Skip auth on localhost
+    if not st.session_state.authenticated and _is_localhost():
+        st.session_state.authenticated = True
+        st.session_state.user_email = "dev@localhost"
+        st.session_state.ip_checked = True
+        st.session_state.ip_allowed = True
+        return True
+    
     if st.session_state.authenticated:
+        # Set Sentry user context for existing sessions
+        if "user_email" in st.session_state:
+            set_user_context(email=st.session_state.user_email)
         return True
     
     # Check IP first
@@ -228,6 +269,8 @@ def check_access() -> bool:
                     if email_lower.endswith("@sejaefi.com.br") or email_lower.endswith("@gerencianet.com.br"):
                         st.session_state.authenticated = True
                         st.session_state.user_email = email_lower
+                        # Set Sentry user context
+                        set_user_context(email=email_lower)
                         st.rerun()
                     else:
                         st.error("Email não autorizado.")
@@ -733,6 +776,13 @@ def render_allocation_section(
     underutilized_count = sum(1 for m in allocation_metrics if m.status == AllocationStatus.UNDERUTILIZED)
     avg_allocation = sum(m.allocation_rate for m in allocation_metrics) / total_members if total_members > 0 else 0
     
+    # OKRs
+    from src.ui.okr_components import render_okrs_for_tab
+    render_okrs_for_tab("project", {
+        "overloaded_members": overloaded_count,
+        "avg_allocation": avg_allocation,
+    })
+    
     # Explanation tooltip
     st.caption("ℹ️ **Como é calculada a Taxa de Alocação:** (Esforço em horas ÷ 24h) × 100%. "
                "O esforço é calculado pelo T-Shirt Size: PP=2.5h, P=6h, M=16h, G=32h, GG=60h, XGG=100h. "
@@ -837,9 +887,9 @@ def render_allocation_drilldown(
                         "Tipo": issue.issue_type,
                         "Status": issue.status,
                         "Tamanho": get_tshirt_size_label(issue.t_shirt_size),
-                        "Criado": issue.created_date.strftime("%d/%m/%Y") if issue.created_date else "-",
-                        "Início": issue.started_date.strftime("%d/%m/%Y") if issue.started_date else "-",
-                        "Fim": issue.resolution_date.strftime("%d/%m/%Y") if issue.resolution_date else "-"
+                        "Criado": issue.created_date.strftime("%d/%m/%Y %H:%M") if issue.created_date else "-",
+                        "Início": issue.started_date.strftime("%d/%m/%Y %H:%M") if issue.started_date else "-",
+                        "Fim": issue.resolution_date.strftime("%d/%m/%Y %H:%M") if issue.resolution_date else "-"
                     })
                 st.dataframe(issue_data, use_container_width=True, hide_index=True)
 
@@ -953,9 +1003,9 @@ def render_productivity_drilldown(
                     "Tamanho": get_tshirt_size_label(issue.t_shirt_size),
                     "Responsável": issue.assignee_name or "N/A",
                     "Time": assignee_team or "Sem time",
-                    "Criado": issue.created_date.strftime("%d/%m/%Y") if issue.created_date else "-",
-                    "Início": issue.started_date.strftime("%d/%m/%Y") if issue.started_date else "-",
-                    "Fim": issue.resolution_date.strftime("%d/%m/%Y") if issue.resolution_date else "-"
+                    "Criado": issue.created_date.strftime("%d/%m/%Y %H:%M") if issue.created_date else "-",
+                    "Início": issue.started_date.strftime("%d/%m/%Y %H:%M") if issue.started_date else "-",
+                    "Fim": issue.resolution_date.strftime("%d/%m/%Y %H:%M") if issue.resolution_date else "-"
                 })
             st.dataframe(issue_data, use_container_width=True, hide_index=True)
         else:
@@ -1062,7 +1112,7 @@ def render_export_section(
                 "Responsável": issue.assignee_name or "N/A",
                 "Tamanho": get_tshirt_size_label(issue.t_shirt_size),
                 "Esforço (h)": issue.story_points or 0,
-                "Criado": issue.created_date.strftime("%Y-%m-%d") if issue.created_date else "N/A"
+                "Criado": issue.created_date.strftime("%d/%m/%Y %H:%M") if issue.created_date else "N/A"
             })
         render_export_button(issues_data, "issues.csv", "📋 Exportar Issues")
 
@@ -1145,6 +1195,53 @@ def render_teams_page():
         st.metric("Tech Leaders", len(teams))
     
     st.divider()
+    
+    # Search by professional
+    search_query = st.text_input(
+        "🔍 Buscar profissional",
+        placeholder="Digite o nome do profissional...",
+        key="teams_search_professional"
+    )
+    
+    # If searching, show search results
+    if search_query:
+        search_lower = search_query.lower().strip()
+        results = []
+        
+        for team in teams:
+            # Check tech leader
+            if search_lower in team.tech_leader.lower():
+                results.append({
+                    "Nome": team.tech_leader,
+                    "Função": "Tech Leader",
+                    "Time": team.time
+                })
+            
+            # Check members
+            for member in team.membros:
+                if search_lower in member.nome.lower():
+                    results.append({
+                        "Nome": member.nome,
+                        "Função": member.funcao,
+                        "Time": team.time
+                    })
+        
+        if results:
+            st.success(f"✅ {len(results)} resultado(s) encontrado(s)")
+            st.dataframe(
+                results,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Nome": st.column_config.TextColumn("Nome", width="medium"),
+                    "Função": st.column_config.TextColumn("Função", width="medium"),
+                    "Time": st.column_config.TextColumn("Time", width="medium")
+                }
+            )
+        else:
+            st.warning(f"Nenhum profissional encontrado com '{search_query}'")
+        
+        st.divider()
     
     # Display teams
     for i, team in enumerate(teams):
@@ -1712,45 +1809,14 @@ def main():
     connector = st.session_state.connector
     connection_status = st.session_state.connection_status
     
-    # Load projects and sprints
-    projects = load_projects(connector, config)
-    sprints = load_sprints(connector)
-    
-    # Start background preload of professionals (non-blocking)
-    if connection_status.connected and connector and config:
-        if "professionals_preload_started" not in st.session_state:
-            st.session_state.professionals_preload_started = False
-        
-        if not st.session_state.professionals_preload_started:
-            st.session_state.professionals_preload_started = True
-            # Start background thread for preloading
-            import threading
-            
-            def preload_professionals_background():
-                """Preload professionals in background thread."""
-                try:
-                    jira_base_url = config.jira.base_url
-                    default_capacity = config.default_capacity_hours
-                    
-                    # Get all project keys
-                    all_projects = get_all_projects_cached(
-                        connector=connector,
-                        base_url=jira_base_url
-                    )
-                    project_keys = [p.key for p in all_projects]
-                    
-                    if project_keys:
-                        get_all_professionals_cached(
-                            connector=connector,
-                            project_keys=project_keys,
-                            default_capacity=default_capacity,
-                            base_url=jira_base_url
-                        )
-                except Exception:
-                    pass  # Silently fail - user can still load manually
-            
-            thread = threading.Thread(target=preload_professionals_background, daemon=True)
-            thread.start()
+    # Load projects (cached) - sprints are loaded per-tab when needed
+    if "cached_projects_list" not in st.session_state:
+        with st.spinner("Carregando projetos..."):
+            projects = load_projects(connector, config)
+            st.session_state.cached_projects_list = projects
+    else:
+        projects = st.session_state.cached_projects_list
+    sprints = []  # Sprints loaded on demand per tab
     
     # Header with dark background similar to Efí website
     status_badge = "🟢 Conectado ao Jira" if connection_status.connected else "🔴 Desconectado"
@@ -1782,41 +1848,197 @@ def main():
         unsafe_allow_html=True
     )
     
-    # Main content area with tabs (Dashboard, Professional View, Legacy, Teams, Configuration)
-    tab_dashboard, tab_professional, tab_legacy, tab_teams, tab_config = st.tabs([
-        "📊 Visão por Projeto", 
+    # Main content area with tabs
+    tab_cycle, tab_dashboard, tab_professional, tab_report, tab_teams = st.tabs([
+        "🔄 Ciclo Completo",
+        "📊 Visão por Projeto",
         "👤 Visão por Profissional",
-        "📋 Legado",
+        "📄 Relatórios",
         "👥 Times",
-        "⚙️ Configuração"
     ])
-    
-    # Renderizar tabs na ordem que funciona (Legado e Config primeiro)
-    with tab_legacy:
-        render_legacy_view(connector, config, connection_status)
-    
-    with tab_config:
-        render_configuration_page(config, connection_status)
     
     with tab_teams:
         render_teams_page()
     
     with tab_dashboard:
-        filters = render_inline_filters(projects, sprints)
-        
-        # Store current filter state to detect changes
-        current_filter_key = f"{filters.project_keys}_{filters.sprint_ids}"
-        if "last_dashboard_filter_key" not in st.session_state:
-            st.session_state.last_dashboard_filter_key = None
-        
-        # Check if filters changed
-        if st.session_state.last_dashboard_filter_key != current_filter_key:
-            st.session_state.last_dashboard_filter_key = current_filter_key
-        
-        render_dashboard_content(filters, projects, sprints, connection_status)
+        if st.session_state.get("load_dashboard_tab", False):
+            filters = render_inline_filters(projects, sprints)
+            
+            # Store current filter state to detect changes
+            current_filter_key = f"{filters.project_keys}_{filters.sprint_ids}"
+            if "last_dashboard_filter_key" not in st.session_state:
+                st.session_state.last_dashboard_filter_key = None
+            
+            # Check if filters changed
+            if st.session_state.last_dashboard_filter_key != current_filter_key:
+                st.session_state.last_dashboard_filter_key = current_filter_key
+            
+            render_dashboard_content(filters, projects, sprints, connection_status)
+        else:
+            st.info("👆 Clique abaixo para carregar a visão por projeto.")
+            if st.button("Carregar Visão por Projeto", key="btn_load_dash_tab", type="primary"):
+                st.session_state.load_dashboard_tab = True
+                st.rerun()
     
     with tab_professional:
-        render_professional_view_tab(connector, config, connection_status)
+        if st.session_state.get("load_professional_tab", False):
+            render_professional_view_tab(connector, config, connection_status)
+        else:
+            st.info("👆 Clique abaixo para carregar a visão por profissional.")
+            if st.button("Carregar Visão por Profissional", key="btn_load_prof_tab", type="primary"):
+                st.session_state.load_professional_tab = True
+                st.rerun()
+    
+    with tab_cycle:
+        # Cycle view filters
+        with st.expander("🔍 Filtros", expanded=True):
+            cc1, cc2, cc3 = st.columns([2, 2, 2])
+            
+            with cc1:
+                cycle_project_options = {p.key: f"{p.key} - {p.name}" for p in projects}
+                cycle_selected_projects = st.multiselect(
+                    "Projetos",
+                    options=list(cycle_project_options.keys()),
+                    format_func=lambda x: cycle_project_options.get(x, x),
+                    key="cycle_filter_projects",
+                    placeholder="Selecione os projetos"
+                ) if cycle_project_options else []
+            
+            with cc2:
+                cycle_start = st.date_input("Data Início", value=None, key="cycle_filter_start")
+            
+            with cc3:
+                cycle_end = st.date_input("Data Fim", value=None, key="cycle_filter_end")
+        
+        if cycle_selected_projects:
+            cycle_date_range = None
+            if cycle_start or cycle_end:
+                cycle_date_range = DateRange(start=cycle_start, end=cycle_end)
+            
+            cycle_filters = Filters(
+                project_keys=cycle_selected_projects,
+                date_range=cycle_date_range
+            )
+            cycle_issues = load_issues(connector, cycle_filters)
+            render_cycle_view_tab(cycle_issues)
+        else:
+            st.info("👆 Selecione um projeto nos filtros acima para visualizar o ciclo completo.")
+    
+    with tab_report:
+        # All report filters together
+        with st.expander("🔍 Filtros", expanded=True):
+            rc1, rc2, rc3 = st.columns([2, 2, 2])
+            
+            with rc1:
+                report_project_options = {p.key: f"{p.key} - {p.name}" for p in projects}
+                report_selected_projects = st.multiselect(
+                    "Projetos",
+                    options=list(report_project_options.keys()),
+                    format_func=lambda x: report_project_options.get(x, x),
+                    key="report_filter_projects",
+                    placeholder="Selecione os projetos"
+                ) if report_project_options else []
+            
+            with rc2:
+                report_start = st.date_input("Data Início", value=None, key="report_filter_start")
+            
+            with rc3:
+                report_end = st.date_input("Data Fim", value=None, key="report_filter_end")
+            
+            # Auto-load issue types when projects change
+            report_proj_key = str(sorted(report_selected_projects)) if report_selected_projects else ""
+            if report_proj_key and report_proj_key != st.session_state.get("report_last_proj_key", ""):
+                st.session_state.report_last_proj_key = report_proj_key
+                # Quick fetch to populate filter options
+                _report_date_range = None
+                if report_start or report_end:
+                    _report_date_range = DateRange(start=report_start, end=report_end)
+                _quick_filters = Filters(project_keys=report_selected_projects, date_range=_report_date_range)
+                with st.spinner("Carregando opções de filtro..."):
+                    _quick_issues = load_issues(connector, _quick_filters)
+                if _quick_issues:
+                    _teams = load_teams()
+                    st.session_state.report_available_types = sorted(set(i.issue_type for i in _quick_issues if i.issue_type))
+                    st.session_state.report_available_statuses = sorted(set(i.status for i in _quick_issues if i.status))
+                    st.session_state.report_available_teams = sorted(set(
+                        find_team_for_member(_teams, i.assignee_name) or "Sem time"
+                        for i in _quick_issues if i.assignee_name
+                    ))
+                    st.session_state.report_issues = _quick_issues
+                    st.rerun()
+            elif not report_proj_key:
+                st.session_state.report_last_proj_key = ""
+                st.session_state.report_available_types = []
+                st.session_state.report_available_statuses = []
+                st.session_state.report_available_teams = []
+                st.session_state.pop("report_issues", None)
+            
+            # Secondary filters row
+            rc4, rc5, rc6, rc7 = st.columns([2, 2, 2, 1])
+            
+            with rc4:
+                report_type_filter = st.multiselect(
+                    "Tipo de Issue",
+                    options=st.session_state.get("report_available_types", []),
+                    key="report_filter_type",
+                    placeholder="Todos os tipos"
+                )
+            
+            with rc5:
+                report_status_filter = st.multiselect(
+                    "Status",
+                    options=st.session_state.get("report_available_statuses", []),
+                    key="report_filter_status",
+                    placeholder="Todos os status"
+                )
+            
+            with rc6:
+                report_team_filter = st.multiselect(
+                    "Time",
+                    options=st.session_state.get("report_available_teams", []),
+                    key="report_filter_team",
+                    placeholder="Todos os times"
+                )
+            
+            with rc7:
+                st.write("")
+                st.write("")
+                report_search = st.button("🔍 Consultar", key="btn_report_search", type="primary", use_container_width=True)
+        
+        # Reload data when Consultar is clicked (applies date filters)
+        if report_search and report_selected_projects:
+            report_date_range = None
+            if report_start or report_end:
+                report_date_range = DateRange(start=report_start, end=report_end)
+            
+            report_filters = Filters(
+                project_keys=report_selected_projects,
+                date_range=report_date_range
+            )
+            with st.spinner("Carregando issues..."):
+                report_issues = load_issues(connector, report_filters)
+            st.session_state.report_issues = report_issues
+            
+            # Update available filter options
+            if report_issues:
+                _teams = load_teams()
+                st.session_state.report_available_types = sorted(set(i.issue_type for i in report_issues if i.issue_type))
+                st.session_state.report_available_statuses = sorted(set(i.status for i in report_issues if i.status))
+                st.session_state.report_available_teams = sorted(set(
+                    find_team_for_member(_teams, i.assignee_name) or "Sem time"
+                    for i in report_issues if i.assignee_name
+                ))
+                st.rerun()
+        
+        if "report_issues" in st.session_state and st.session_state.report_issues:
+            render_report_tab(
+                st.session_state.report_issues,
+                type_filter=st.session_state.get("report_filter_type", []),
+                status_filter=st.session_state.get("report_filter_status", []),
+                team_filter=st.session_state.get("report_filter_team", []),
+            )
+        elif not report_selected_projects:
+            st.info("👆 Selecione um projeto e clique em Consultar para gerar o relatório.")
 
 
 def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Filters:
@@ -1872,11 +2094,14 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                     from src.cache.cache_manager import CacheManager
                     
                     all_sprints = []
+                    board_names = {}  # Map board_id -> board_name
                     for project_key in selected_projects:
                         boards = st.session_state.connector.get_boards(project_key)
                         for board in boards:
                             board_id = board.get("id")
+                            board_name = board.get("name", "")
                             if board_id:
+                                board_names[board_id] = board_name
                                 cache_key = f"sprints_{board_id}"
                                 cached = CacheManager.get_cached_data(cache_key)
                                 if cached:
@@ -1903,7 +2128,14 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                     ))
                     available_sprints = unique_sprints
                 
-                sprint_options = {s.jira_id: f"{s.name} ({s.state})" for s in available_sprints}
+                # Show board name in sprint label for clarity
+                sprint_options = {}
+                for s in available_sprints:
+                    bname = board_names.get(s.board_id, "")
+                    label = f"{s.name} ({s.state})"
+                    if bname:
+                        label = f"[{bname}] {s.name} ({s.state})"
+                    sprint_options[s.jira_id] = label
                 
                 selected_sprint_ids = st.multiselect(
                     "Sprints",
