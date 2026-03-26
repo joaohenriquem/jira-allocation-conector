@@ -1857,7 +1857,7 @@ def main():
     
     # Main content area with tabs
     tab_cycle, tab_dashboard, tab_professional, tab_report, tab_teams = st.tabs([
-        "🔄 Ciclo Completo",
+        "🔄 Visão Unificada",
         "📊 Visão por Projeto",
         "👤 Visão por Profissional",
         "📄 Relatórios",
