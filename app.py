@@ -148,24 +148,12 @@ def check_ip_access() -> tuple[bool, str]:
 def _is_localhost() -> bool:
     """Check if the app is running on localhost."""
     try:
-        # Try Streamlit context headers first
+        # Use Streamlit context headers - most reliable method
         host = st.context.headers.get("Host", "")
-        if host.startswith("localhost") or host.startswith("127.0.0.1"):
-            return True
+        return host.startswith("localhost") or host.startswith("127.0.0.1")
     except Exception:
-        pass
-    
-    # Fallback: check if running locally via common indicators
-    import os
-    # Streamlit Cloud sets specific env vars
-    if os.getenv("STREAMLIT_SHARING_MODE"):
+        # If st.context is not available, assume NOT localhost (safer for production)
         return False
-    if os.getenv("HOSTNAME", "").endswith(".streamlit.app"):
-        return False
-    
-    # If none of the cloud indicators are present, assume localhost
-    return not os.getenv("STREAMLIT_SERVER_ADDRESS") or \
-           os.getenv("STREAMLIT_SERVER_ADDRESS", "localhost") in ("localhost", "127.0.0.1", "0.0.0.0")
 
 
 def check_access() -> bool:
