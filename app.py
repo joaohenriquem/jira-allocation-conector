@@ -179,10 +179,13 @@ def check_access() -> bool:
             set_user_context(email=st.session_state.user_email)
         return True
     
-    # Check IP first
+    # Check IP and get client IP for display
     if "ip_checked" not in st.session_state:
         with st.spinner("Verificando acesso..."):
             ip_allowed, client_ip = check_ip_access()
+            # Always try to get client IP for display
+            if not client_ip:
+                client_ip = get_client_ip()
             st.session_state.ip_checked = True
             st.session_state.ip_allowed = ip_allowed
             st.session_state.client_ip = client_ip
