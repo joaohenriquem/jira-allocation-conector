@@ -536,7 +536,7 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
             jql_parts.append(f"created <= '{end_str}'")
     
     jql = " AND ".join(jql_parts)
-    cache_key = f"issues_{hash(jql)}"
+    cache_key = f"issues_full_{hash(jql)}"
     
     cached = CacheManager.get_cached_data(cache_key)
     if cached:
@@ -548,9 +548,22 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
                  "customfield_10370", "customfield_10016", "customfield_10026",
                  "customfield_11891",
                  "statuscategorychangedate"]
-        result = connector.get_issues(jql, fields)
-        CacheManager.set_cached_data(cache_key, result.issues)
-        return result.issues
+        
+        # Fetch all pages using nextPageToken
+        all_issues = []
+        next_token = None
+        while True:
+            result = connector.get_issues(jql, fields, next_page_token=next_token)
+            all_issues.extend(result.issues)
+            
+            is_last = getattr(result, 'is_last', True)
+            next_token = getattr(result, 'next_page_token', None)
+            
+            if is_last or not next_token:
+                break
+        
+        CacheManager.set_cached_data(cache_key, all_issues)
+        return all_issues
     except Exception as e:
         st.warning(f"⚠️ Erro ao carregar issues: {e}")
         return []

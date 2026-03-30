@@ -198,16 +198,17 @@ class ProfessionalMetricsEngine:
                     end_str = self._date_range.end.strftime("%Y-%m-%d")
                     jql += f" AND created <= '{end_str}'"
             
-            start_at = 0
+            next_token = None
             while True:
                 try:
-                    result = self.connector.get_issues(jql, fields, start_at)
+                    result = self.connector.get_issues(jql, fields, next_page_token=next_token)
                     all_issues.extend(result.issues)
                     
-                    if not result.has_more:
-                        break
+                    is_last = getattr(result, 'is_last', True)
+                    next_token = getattr(result, 'next_page_token', None)
                     
-                    start_at += len(result.issues)
+                    if is_last or not next_token:
+                        break
                 except Exception:
                     # Skip projects that fail (e.g., no permission)
                     break
@@ -255,15 +256,16 @@ class ProfessionalMetricsEngine:
             "statuscategorychangedate"
         ]
         
-        start_at = 0
+        next_token = None
         while True:
-            result = self.connector.get_issues(jql, fields, start_at)
+            result = self.connector.get_issues(jql, fields, next_page_token=next_token)
             all_issues.extend(result.issues)
             
-            if not result.has_more:
-                break
+            is_last = getattr(result, 'is_last', True)
+            next_token = getattr(result, 'next_page_token', None)
             
-            start_at += len(result.issues)
+            if is_last or not next_token:
+                break
         
         return all_issues
 
