@@ -352,7 +352,7 @@ def render_combined_allocation_chart(
         )
     )
     
-    st.plotly_chart(fig, use_container_width=True, key="combined_allocation_chart")
+    st.plotly_chart(fig, width="stretch", key="combined_allocation_chart")
 
 
 # =============================================================================
@@ -441,7 +441,7 @@ def render_trend_chart(
         height=350,
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 # =============================================================================

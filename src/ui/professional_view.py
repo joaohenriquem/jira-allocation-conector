@@ -276,7 +276,7 @@ def render_project_breakdown_chart(breakdown: List[ProjectAllocation], key_suffi
             height=400,
         )
         
-        st.plotly_chart(fig, use_container_width=True, key=f"project_breakdown_pie{key_suffix}")
+        st.plotly_chart(fig, width="stretch", key=f"project_breakdown_pie{key_suffix}")
     
     with col2:
         # Show breakdown table
@@ -397,7 +397,7 @@ def render_professional_timeline(timeline: List[WeeklyAllocation], key_suffix: s
         height=400,
     )
     
-    st.plotly_chart(fig, use_container_width=True, key=f"professional_timeline{key_suffix}")
+    st.plotly_chart(fig, width="stretch", key=f"professional_timeline{key_suffix}")
     
     # Show effort breakdown per week in expander
     with st.expander("📊 Ver detalhes por semana"):
@@ -563,7 +563,7 @@ def render_professional_view_content(
                 if issue_data:
                     st.dataframe(
                         issue_data,
-                        use_container_width=True,
+                        width="stretch",
                         hide_index=True,
                         key=f"issues_df_{proj.project_key}{key_suffix}"
                     )

@@ -268,7 +268,7 @@ def check_access() -> bool:
         
         with st.form("login_form"):
             email = st.text_input("Email", placeholder="seu.email@empresa.com.br")
-            submitted = st.form_submit_button("Entrar", use_container_width=True, type="primary")
+            submitted = st.form_submit_button("Entrar", width="stretch", type="primary")
             
             if submitted:
                 if email:
@@ -758,7 +758,7 @@ def render_flow_balance_table(issues: List[Issue]):
         
         st.dataframe(
             df,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 "Tipo": st.column_config.TextColumn("Tipo de Item"),
@@ -915,7 +915,7 @@ def render_allocation_drilldown(
                         "Início": issue.started_date.strftime("%d/%m/%Y %H:%M") if issue.started_date else "-",
                         "Fim": issue.resolution_date.strftime("%d/%m/%Y %H:%M") if issue.resolution_date else "-"
                     })
-                st.dataframe(issue_data, use_container_width=True, hide_index=True)
+                st.dataframe(issue_data, width="stretch", hide_index=True)
 
 
 # =============================================================================
@@ -1031,7 +1031,7 @@ def render_productivity_drilldown(
                     "Início": issue.started_date.strftime("%d/%m/%Y %H:%M") if issue.started_date else "-",
                     "Fim": issue.resolution_date.strftime("%d/%m/%Y %H:%M") if issue.resolution_date else "-"
                 })
-            st.dataframe(issue_data, use_container_width=True, hide_index=True)
+            st.dataframe(issue_data, width="stretch", hide_index=True)
         else:
             st.info("Nenhuma issue concluída")
     
@@ -1254,7 +1254,7 @@ def render_teams_page():
             st.success(f"✅ {len(results)} resultado(s) encontrado(s)")
             st.dataframe(
                 results,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 column_config={
                     "Nome": st.column_config.TextColumn("Nome", width="medium"),
@@ -1295,7 +1295,7 @@ def render_teams_page():
                 
                 st.dataframe(
                     member_data,
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                     column_config={
                         "Nome": st.column_config.TextColumn("Nome", width="medium"),
@@ -2032,12 +2032,12 @@ def main():
             with rc7:
                 st.write("")
                 st.write("")
-                report_search = st.button("🔍 Consultar", key="btn_report_search", type="primary", use_container_width=True)
+                report_search = st.button("🔍 Consultar", key="btn_report_search", type="primary", width="stretch")
             
             with rc8:
                 st.write("")
                 st.write("")
-                report_clear = st.button("🗑️ Limpar", key="btn_report_clear", use_container_width=True)
+                report_clear = st.button("🗑️ Limpar", key="btn_report_clear", width="stretch")
         
         # Handle clear button
         if report_clear:

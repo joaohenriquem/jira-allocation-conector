@@ -83,7 +83,7 @@ def render_report_analysis(df: pd.DataFrame):
     st.markdown("#### Distribuição por Tipo")
     type_counts = df["Tipo"].value_counts().reset_index()
     type_counts.columns = ["Tipo", "Quantidade"]
-    st.dataframe(type_counts, use_container_width=True, hide_index=True)
+    st.dataframe(type_counts, width="stretch", hide_index=True)
     
     # Issues by assignee
     st.markdown("#### Distribuição por Responsável")
@@ -95,19 +95,19 @@ def render_report_analysis(df: pd.DataFrame):
     assignee_counts["Time"] = assignee_counts["Responsável"].apply(
         lambda x: find_team_for_member(teams, x) or "Sem time"
     )
-    st.dataframe(assignee_counts, use_container_width=True, hide_index=True)
+    st.dataframe(assignee_counts, width="stretch", hide_index=True)
     
     # Issues by team
     st.markdown("#### Distribuição por Time")
     team_counts = df["Time"].value_counts().reset_index()
     team_counts.columns = ["Time", "Quantidade"]
-    st.dataframe(team_counts, use_container_width=True, hide_index=True)
+    st.dataframe(team_counts, width="stretch", hide_index=True)
     
     # Issues by status
     st.markdown("#### Distribuição por Status")
     status_counts = df["Status"].value_counts().reset_index()
     status_counts.columns = ["Status", "Quantidade"]
-    st.dataframe(status_counts, use_container_width=True, hide_index=True)
+    st.dataframe(status_counts, width="stretch", hide_index=True)
 
 
 def render_keyword_analysis(df: pd.DataFrame):
@@ -159,7 +159,7 @@ def render_keyword_analysis(df: pd.DataFrame):
                 sorted(support_matches.items(), key=lambda x: x[1], reverse=True),
                 columns=["Palavra-chave", "Ocorrências"]
             )
-            st.dataframe(support_df, use_container_width=True, hide_index=True)
+            st.dataframe(support_df, width="stretch", hide_index=True)
         else:
             st.caption("Nenhuma palavra-chave de suporte encontrada")
     
@@ -170,7 +170,7 @@ def render_keyword_analysis(df: pd.DataFrame):
                 sorted(dev_matches.items(), key=lambda x: x[1], reverse=True),
                 columns=["Palavra-chave", "Ocorrências"]
             )
-            st.dataframe(dev_df, use_container_width=True, hide_index=True)
+            st.dataframe(dev_df, width="stretch", hide_index=True)
         else:
             st.caption("Nenhuma palavra-chave de desenvolvimento encontrada")
     
@@ -296,7 +296,7 @@ def render_report_tab(issues: List[Issue], type_filter: list = None, status_filt
         
         st.dataframe(
             display_df[["Chave", "Tipo", "Resumo", "Status", "Responsável", "Time", "Classificação"]],
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             height=400
         )
@@ -316,7 +316,7 @@ def render_report_tab(issues: List[Issue], type_filter: list = None, status_filt
     
     with data_tab:
         st.markdown("#### 📋 Todos os Dados")
-        st.dataframe(filtered_df, use_container_width=True, hide_index=True, height=500)
+        st.dataframe(filtered_df, width="stretch", hide_index=True, height=500)
         
         # Export full data
         csv_full = filtered_df.to_csv(index=False).encode("utf-8")
@@ -397,7 +397,7 @@ def render_ai_analysis(df: pd.DataFrame):
             "🚀 Analisar com IA",
             key="btn_run_ai_analysis",
             type="primary",
-            use_container_width=True
+            width="stretch"
         )
     with col_info:
         st.caption(f"Serão enviadas {min(max_issues, len(df))} issues ({len(csv_for_ai)} caracteres)")

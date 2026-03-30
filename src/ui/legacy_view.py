@@ -362,7 +362,7 @@ def _render_net_flow(issues: List[Issue]):
         
         st.dataframe(
             df,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 "Tipo": st.column_config.TextColumn("Tipo de Item"),
@@ -487,7 +487,7 @@ def _render_capacity_section(issues: List[Issue], config: Any):
         })
     
     if table_data:
-        st.dataframe(pd.DataFrame(table_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(table_data), width="stretch", hide_index=True)
 
 
 def _render_rankings(issues: List[Issue]):
@@ -510,7 +510,7 @@ def _render_rankings(issues: List[Issue]):
             data.append({"Responsável": resp, "Qtd": count, "%": f"{pct:.1f}%"})
         
         if data:
-            st.dataframe(pd.DataFrame(data), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(data), width="stretch", hide_index=True)
         else:
             st.info("Sem dados")
     
@@ -530,7 +530,7 @@ def _render_rankings(issues: List[Issue]):
             data.append({"Relator": relator, "Qtd": count, "%": f"{pct:.1f}%"})
         
         if data:
-            st.dataframe(pd.DataFrame(data), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(data), width="stretch", hide_index=True)
         else:
             st.info("Sem dados")
 
@@ -555,7 +555,7 @@ def _render_distribution_tables(issues: List[Issue]):
             data.append({"Tipo": tipo, "Qtd": count, "%": f"{pct:.1f}%"})
         
         if data:
-            st.dataframe(pd.DataFrame(data), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(data), width="stretch", hide_index=True)
     
     with col2:
         st.subheader("📋 Demandas por Status")
@@ -572,7 +572,7 @@ def _render_distribution_tables(issues: List[Issue]):
             data.append({"Status": status, "Qtd": count, "%": f"{pct:.1f}%"})
         
         if data:
-            st.dataframe(pd.DataFrame(data), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(data), width="stretch", hide_index=True)
 
 
 def _render_monthly_charts(issues: List[Issue]):
@@ -676,7 +676,7 @@ def _render_backlog_table(issues: List[Issue]):
         
         st.dataframe(
             pd.DataFrame(table_data),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 "Chave": st.column_config.TextColumn("Chave", width="small"),

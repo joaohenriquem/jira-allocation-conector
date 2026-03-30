@@ -4,11 +4,25 @@ Dashboard interativo para análise de métricas de alocação e produtividade de
 
 ## Funcionalidades
 
-- **Visão por Projeto**: Métricas de alocação e produtividade por projeto/sprint
-- **Visão por Profissional**: Alocação consolidada por profissional em todos os projetos
-- **Legado**: Dashboard com KPIs, Net Flow, Capacity e Backlog detalhado
-- **Cache Inteligente**: Reduz chamadas à API (TTL de 1 hora)
-- **Exportação CSV**: Exportação de dados para análise externa
+- **Visão Unificada**: Ciclo completo Produto → Engenharia com funil, burndown, OKRs e balanço de vazão
+- **Visão por Projeto**: Métricas de alocação e produtividade por projeto/sprint com filtros por time e tipo de issue
+- **Visão por Profissional**: Alocação consolidada por profissional com seleção automática por time
+- **Relatórios**: Extração de dados com classificação Suporte vs Desenvolvimento, análise com IA (Gemini) e exportação CSV
+- **Times**: Configuração e busca de profissionais por time
+- **OKRs**: Acompanhamento de Key Results integrado às visões (configurável via JSON)
+- **Controle de Acesso**: Autenticação por email corporativo e filtro por IP
+- **Monitoramento**: Integração com Sentry para rastreamento de erros
+- **Cache Inteligente**: Reduz chamadas à API com cache em session_state e MongoDB (opcional)
+
+## Abas do Dashboard
+
+| Aba | Descrição |
+|-----|-----------|
+| 🔄 Visão Unificada | Ciclo completo dos dois boards (Produto + Engenharia) com métricas, funil, burndown e OKRs |
+| 📊 Visão por Projeto | Métricas de alocação por projeto/sprint com filtros de time, tipo e datas |
+| 👤 Visão por Profissional | Alocação cross-project por profissional, com seleção automática por time |
+| 📄 Relatórios | Extração de dados, classificação por palavras-chave, análise com IA e exportação CSV |
+| 👥 Times | Configuração de times e busca de profissionais |
 
 ## Deploy no Streamlit Cloud
 
@@ -19,42 +33,36 @@ Certifique-se de que o repositório contém:
 - `requirements.txt` (dependências)
 - `.streamlit/config.toml` (configurações de tema)
 - `config.yaml` (configurações da aplicação)
+- `src/config/times.json` (configuração de times)
+- `src/config/okrs.json` (configuração de OKRs)
 
-**IMPORTANTE**: Nunca commite o arquivo `.env` com suas credenciais!
+**IMPORTANTE**: Nunca commite `.env` ou `.streamlit/secrets.toml` com credenciais!
 
-### 2. Criar Conta no Streamlit Cloud
-
-1. Acesse [share.streamlit.io](https://share.streamlit.io)
-2. Faça login com sua conta GitHub
-
-### 3. Deploy da Aplicação
-
-1. Clique em "New app"
-2. Selecione o repositório e branch
-3. Configure:
-   - **Main file path**: `jira-allocation-connector/app.py`
-   - **App URL**: escolha um nome único
-
-### 4. Configurar Secrets (Variáveis de Ambiente)
+### 2. Configurar Secrets
 
 No Streamlit Cloud, vá em **Settings > Secrets** e adicione:
 
 ```toml
-JIRA_BASE_URL = "https://sua-empresa.atlassian.net/"
-JIRA_USERNAME = "seu-email@exemplo.com"
-JIRA_API_TOKEN = "seu-api-token-jira"
+# Jira
+JIRA_BASE_URL = "https://sua-empresa.atlassian.net"
+JIRA_USERNAME = "seu-email@empresa.com"
+JIRA_API_TOKEN = "seu-api-token"
+
+# IPs permitidos (vazio = sem filtro)
+ALLOWED_IPS = ""
+
+# Sentry (opcional)
+SENTRY_DSN = ""
+SENTRY_ENVIRONMENT = "production"
+
+# Gemini AI (opcional - para análise com IA nos relatórios)
+GEMINI_API_KEY = ""
+
+# MongoDB Cache (opcional)
+MONGODB_URI = ""
+MONGODB_DATABASE = "jira_cache"
+MONGODB_CACHE_ENABLED = "false"
 ```
-
-**Para obter o API Token do Jira:**
-1. Acesse [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
-2. Clique em "Create API token"
-3. Copie o token gerado
-
-### 5. Reiniciar a Aplicação
-
-Após configurar os secrets, clique em "Reboot app" para aplicar as mudanças.
-
----
 
 ## Execução Local
 
@@ -66,58 +74,93 @@ Após configurar os secrets, clique em "Reboot app" para aplicar as mudanças.
 ### Instalação
 
 ```bash
-cd jira-allocation-connector
 pip install -r requirements.txt
 ```
 
 ### Configuração
 
-1. Copie o arquivo de exemplo:
 ```bash
 cp .env.example .env
-```
-
-2. Configure suas credenciais no `.env`:
-```env
-JIRA_BASE_URL=https://sua-empresa.atlassian.net/
-JIRA_USERNAME=seu-email@exemplo.com
-JIRA_API_TOKEN=seu-api-token
+# Edite o .env com suas credenciais
 ```
 
 ### Execução
 
 ```bash
 streamlit run app.py
+# Ou no Windows:
+.\run.ps1
 ```
 
-Acesse `http://localhost:8501`
-
----
+Acesse `http://localhost:8501` (login é pulado automaticamente em localhost).
 
 ## Estrutura do Projeto
 
 ```
 jira-allocation-connector/
-├── app.py                    # Entry point Streamlit
-├── config.yaml               # Configurações da aplicação
-├── requirements.txt          # Dependências Python
-├── .streamlit/config.toml    # Tema e configurações Streamlit
+├── app.py                        # Entry point Streamlit
+├── config.yaml                   # Configurações da aplicação
+├── requirements.txt              # Dependências Python
+├── .streamlit/config.toml        # Tema e configurações Streamlit
 ├── src/
-│   ├── connector/            # Integração com Jira API
-│   ├── metrics/              # Cálculo de métricas
-│   ├── cache/                # Gerenciamento de cache
-│   ├── config/               # Carregamento de configuração
-│   ├── models/               # Modelos de dados
-│   ├── ui/                   # Componentes de interface
-│   └── utils/                # Utilitários (logging)
-└── tests/                    # Testes
+│   ├── ai/
+│   │   ├── assistant.py          # Assistente IA (OpenAI/Anthropic)
+│   │   └── gemini_analyzer.py    # Análise com Google Gemini
+│   ├── cache/                    # Cache (session_state + MongoDB)
+│   ├── config/
+│   │   ├── config_loader.py      # Carregamento de config.yaml
+│   │   ├── teams_loader.py       # Gestão de times
+│   │   ├── times.json            # Configuração de times
+│   │   └── okrs.json             # Configuração de OKRs
+│   ├── connector/
+│   │   └── jira_connector.py     # Integração com Jira API (v3)
+│   ├── metrics/
+│   │   ├── metrics_engine.py     # Cálculo de métricas
+│   │   └── professional_metrics.py # Métricas por profissional
+│   ├── models/
+│   │   └── data_models.py        # Modelos de dados
+│   ├── ui/
+│   │   ├── cycle_view.py         # Visão Unificada (ciclo completo)
+│   │   ├── report_view.py        # Relatórios e exportação
+│   │   ├── professional_view.py  # Visão por profissional
+│   │   ├── okr_components.py     # Componentes de OKR
+│   │   ├── charts.py             # Gráficos Plotly
+│   │   ├── components.py         # Componentes UI reutilizáveis
+│   │   └── styles.py             # Tema e estilos
+│   └── utils/
+│       ├── logging.py            # Logging estruturado
+│       └── sentry_config.py      # Configuração do Sentry
+└── tests/                        # Testes
 ```
 
-## Limitações no Streamlit Cloud
+## Configuração de OKRs
 
-- **Cache por sessão**: O cache usa `session_state`, então cada usuário tem seu próprio cache
-- **Timeout**: Requisições longas podem dar timeout (limite de ~30s por request)
-- **Memória**: Limite de 1GB de RAM no plano gratuito
+Edite `src/config/okrs.json` para definir seus OKRs. Cada KR é vinculado a uma aba:
+
+```json
+{
+  "quarter": "Q2 2026",
+  "objective": "Aumentar eficiência das entregas",
+  "key_results": [
+    {
+      "id": "kr1",
+      "description": "Reduzir lead time médio para 15 dias",
+      "metric": "lead_time_avg",
+      "target": 15,
+      "unit": "dias",
+      "direction": "decrease",
+      "tab": "cycle"
+    }
+  ]
+}
+```
+
+Valores de `tab`: `cycle`, `project`, `report`.
+Valores de `direction`: `increase`, `decrease`, `target_range`.
+
+## Configuração de Times
+
+Edite `src/config/times.json` para gerenciar times e membros.
 
 ## Licença
 
