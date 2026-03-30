@@ -250,25 +250,29 @@ def check_access() -> bool:
         st.markdown("### Acesso ao Sistema")
         st.markdown("Digite seu email corporativo para continuar.")
         
-        # Show client IP from multiple sources
-        client_ip = st.session_state.get("client_ip", "")
-        if not client_ip:
-            # Try Streamlit headers
-            try:
-                client_ip = st.context.headers.get("X-Forwarded-For", "").split(",")[0].strip()
-            except Exception:
-                pass
+        # Show client IP - prefer Streamlit headers (real client IP)
+        client_ip = ""
+        try:
+            # X-Forwarded-For contains the real client IP as first entry
+            xff = st.context.headers.get("X-Forwarded-For", "")
+            if xff:
+                client_ip = xff.split(",")[0].strip()
+        except Exception:
+            pass
         if not client_ip:
             try:
                 client_ip = st.context.headers.get("X-Real-Ip", "")
             except Exception:
                 pass
+        if not client_ip:
+            # Fallback to ipify (returns server IP on cloud, client IP on localhost)
+            client_ip = st.session_state.get("client_ip", "")
         
         st.caption(f"🌐 IP: `{client_ip}`" if client_ip else "🌐 IP: não identificado")
         
         with st.form("login_form"):
             email = st.text_input("Email", placeholder="seu.email@empresa.com.br")
-            submitted = st.form_submit_button("Entrar", use_container_width=True, type="primary")
+            submitted = st.form_submit_button("Entrar", width="stretch", type="primary")
             
             if submitted:
                 if email:
@@ -758,7 +762,7 @@ def render_flow_balance_table(issues: List[Issue]):
         
         st.dataframe(
             df,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 "Tipo": st.column_config.TextColumn("Tipo de Item"),
@@ -915,7 +919,7 @@ def render_allocation_drilldown(
                         "Início": issue.started_date.strftime("%d/%m/%Y %H:%M") if issue.started_date else "-",
                         "Fim": issue.resolution_date.strftime("%d/%m/%Y %H:%M") if issue.resolution_date else "-"
                     })
-                st.dataframe(issue_data, use_container_width=True, hide_index=True)
+                st.dataframe(issue_data, width="stretch", hide_index=True)
 
 
 # =============================================================================
@@ -1031,7 +1035,7 @@ def render_productivity_drilldown(
                     "Início": issue.started_date.strftime("%d/%m/%Y %H:%M") if issue.started_date else "-",
                     "Fim": issue.resolution_date.strftime("%d/%m/%Y %H:%M") if issue.resolution_date else "-"
                 })
-            st.dataframe(issue_data, use_container_width=True, hide_index=True)
+            st.dataframe(issue_data, width="stretch", hide_index=True)
         else:
             st.info("Nenhuma issue concluída")
     
@@ -1254,7 +1258,7 @@ def render_teams_page():
             st.success(f"✅ {len(results)} resultado(s) encontrado(s)")
             st.dataframe(
                 results,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 column_config={
                     "Nome": st.column_config.TextColumn("Nome", width="medium"),
@@ -1295,7 +1299,7 @@ def render_teams_page():
                 
                 st.dataframe(
                     member_data,
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                     column_config={
                         "Nome": st.column_config.TextColumn("Nome", width="medium"),
@@ -2032,12 +2036,12 @@ def main():
             with rc7:
                 st.write("")
                 st.write("")
-                report_search = st.button("🔍 Consultar", key="btn_report_search", type="primary", use_container_width=True)
+                report_search = st.button("🔍 Consultar", key="btn_report_search", type="primary", width="stretch")
             
             with rc8:
                 st.write("")
                 st.write("")
-                report_clear = st.button("🗑️ Limpar", key="btn_report_clear", use_container_width=True)
+                report_clear = st.button("🗑️ Limpar", key="btn_report_clear", width="stretch")
         
         # Handle clear button
         if report_clear:

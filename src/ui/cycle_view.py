@@ -139,7 +139,7 @@ def render_cycle_funnel(issues: List[Issue]):
         margin=dict(l=20, r=20, t=60, b=20),
     )
     
-    st.plotly_chart(fig, use_container_width=True, key="cycle_funnel")
+    st.plotly_chart(fig, width="stretch", key="cycle_funnel")
 
 
 def render_cycle_board(issues: List[Issue]):
@@ -226,7 +226,7 @@ def render_cycle_board(issues: List[Issue]):
                     })
                 
                 if issue_data:
-                    st.dataframe(issue_data, use_container_width=True, hide_index=True)
+                    st.dataframe(issue_data, width="stretch", hide_index=True)
                 
                 st.markdown("---")
 
@@ -300,7 +300,7 @@ def render_cycle_metrics(issues: List[Issue]):
             yaxis=dict(visible=False),
         )
         
-        st.plotly_chart(fig, use_container_width=True, key="cycle_distribution_bar")
+        st.plotly_chart(fig, width="stretch", key="cycle_distribution_bar")
     
     # Lead time for done issues
     if done_issues:
@@ -430,7 +430,7 @@ def render_cycle_burndown(issues: List[Issue]):
         yaxis=dict(gridcolor="#E5E7EB", gridwidth=0.5, title="Issues"),
     )
     
-    st.plotly_chart(fig, use_container_width=True, key="cycle_burndown")
+    st.plotly_chart(fig, width="stretch", key="cycle_burndown")
 
 
 def render_cycle_flow_balance(issues: List[Issue]):
@@ -465,7 +465,7 @@ def render_cycle_flow_balance(issues: List[Issue]):
         })
     
     if data:
-        st.dataframe(data, use_container_width=True, hide_index=True)
+        st.dataframe(data, width="stretch", hide_index=True)
 
 
 def render_cycle_view_tab(issues: List[Issue]):

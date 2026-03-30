@@ -83,7 +83,7 @@ def render_report_analysis(df: pd.DataFrame):
     st.markdown("#### Distribuição por Tipo")
     type_counts = df["Tipo"].value_counts().reset_index()
     type_counts.columns = ["Tipo", "Quantidade"]
-    st.dataframe(type_counts, use_container_width=True, hide_index=True)
+    st.dataframe(type_counts, width="stretch", hide_index=True)
     
     # Issues by assignee
     st.markdown("#### Distribuição por Responsável")
@@ -95,19 +95,19 @@ def render_report_analysis(df: pd.DataFrame):
     assignee_counts["Time"] = assignee_counts["Responsável"].apply(
         lambda x: find_team_for_member(teams, x) or "Sem time"
     )
-    st.dataframe(assignee_counts, use_container_width=True, hide_index=True)
+    st.dataframe(assignee_counts, width="stretch", hide_index=True)
     
     # Issues by team
     st.markdown("#### Distribuição por Time")
     team_counts = df["Time"].value_counts().reset_index()
     team_counts.columns = ["Time", "Quantidade"]
-    st.dataframe(team_counts, use_container_width=True, hide_index=True)
+    st.dataframe(team_counts, width="stretch", hide_index=True)
     
     # Issues by status
     st.markdown("#### Distribuição por Status")
     status_counts = df["Status"].value_counts().reset_index()
     status_counts.columns = ["Status", "Quantidade"]
-    st.dataframe(status_counts, use_container_width=True, hide_index=True)
+    st.dataframe(status_counts, width="stretch", hide_index=True)
 
 
 def render_keyword_analysis(df: pd.DataFrame):
@@ -159,7 +159,7 @@ def render_keyword_analysis(df: pd.DataFrame):
                 sorted(support_matches.items(), key=lambda x: x[1], reverse=True),
                 columns=["Palavra-chave", "Ocorrências"]
             )
-            st.dataframe(support_df, use_container_width=True, hide_index=True)
+            st.dataframe(support_df, width="stretch", hide_index=True)
         else:
             st.caption("Nenhuma palavra-chave de suporte encontrada")
     
@@ -170,7 +170,7 @@ def render_keyword_analysis(df: pd.DataFrame):
                 sorted(dev_matches.items(), key=lambda x: x[1], reverse=True),
                 columns=["Palavra-chave", "Ocorrências"]
             )
-            st.dataframe(dev_df, use_container_width=True, hide_index=True)
+            st.dataframe(dev_df, width="stretch", hide_index=True)
         else:
             st.caption("Nenhuma palavra-chave de desenvolvimento encontrada")
     
@@ -296,7 +296,7 @@ def render_report_tab(issues: List[Issue], type_filter: list = None, status_filt
         
         st.dataframe(
             display_df[["Chave", "Tipo", "Resumo", "Status", "Responsável", "Time", "Classificação"]],
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             height=400
         )
@@ -316,7 +316,7 @@ def render_report_tab(issues: List[Issue], type_filter: list = None, status_filt
     
     with data_tab:
         st.markdown("#### 📋 Todos os Dados")
-        st.dataframe(filtered_df, use_container_width=True, hide_index=True, height=500)
+        st.dataframe(filtered_df, width="stretch", hide_index=True, height=500)
         
         # Export full data
         csv_full = filtered_df.to_csv(index=False).encode("utf-8")
@@ -330,19 +330,30 @@ def render_report_tab(issues: List[Issue], type_filter: list = None, status_filt
 
 
 def render_ai_analysis(df: pd.DataFrame):
-    """Render AI analysis section using Gemini."""
-    from src.ai.gemini_analyzer import is_gemini_available, analyze_issues_with_gemini, PROMPTS
+    """Render AI analysis section with provider selection."""
+    from src.ai.ai_analyzer import get_available_providers, is_ai_available, analyze_issues, PROMPTS
     
     st.markdown("#### 🤖 Análise com Inteligência Artificial")
     
-    if not is_gemini_available():
+    providers = get_available_providers()
+    if not providers:
         st.warning(
-            "⚠️ API Key do Gemini não configurada. "
-            "Adicione `GEMINI_API_KEY` nas variáveis de ambiente ou no secrets.toml."
+            "⚠️ Nenhuma API Key de IA configurada. "
+            "Adicione `OPENAI_API_KEY` ou `GEMINI_API_KEY` nas variáveis de ambiente ou no secrets.toml."
         )
         return
     
-    st.caption(f"📊 {len(df)} issues serão enviadas para análise")
+    # Provider selector
+    col_provider, col_info_count = st.columns([1, 3])
+    with col_provider:
+        selected_provider = st.selectbox(
+            "Provedor de IA",
+            options=list(providers.keys()),
+            format_func=lambda x: providers[x],
+            key="ai_provider_select"
+        )
+    with col_info_count:
+        st.caption(f"📊 {len(df)} issues disponíveis para análise")
     
     # Prompt selection
     prompt_options = {
@@ -368,7 +379,7 @@ def render_ai_analysis(df: pd.DataFrame):
             value="",
             height=150,
             key="ai_custom_prompt",
-            placeholder="Ex: Analise as issues e identifique quais são atividades de suporte que poderiam ser executadas pelo time de operações..."
+            placeholder="Ex: Analise as issues e identifique quais são atividades de suporte..."
         )
     else:
         with st.expander("Ver prompt que será enviado"):
@@ -385,7 +396,7 @@ def render_ai_analysis(df: pd.DataFrame):
         help="Limite para evitar exceder o limite de tokens da API"
     )
     
-    # Prepare CSV data (limited columns for token efficiency)
+    # Prepare CSV data
     export_cols = ["Chave", "Tipo", "Resumo", "Status", "Responsável", "Time", "Tamanho", "Lead Time (dias)"]
     available_cols = [c for c in export_cols if c in df.columns]
     csv_for_ai = df[available_cols].head(max_issues).to_csv(index=False)
@@ -397,18 +408,18 @@ def render_ai_analysis(df: pd.DataFrame):
             "🚀 Analisar com IA",
             key="btn_run_ai_analysis",
             type="primary",
-            use_container_width=True
+            width="stretch"
         )
     with col_info:
-        st.caption(f"Serão enviadas {min(max_issues, len(df))} issues ({len(csv_for_ai)} caracteres)")
+        st.caption(f"{providers[selected_provider]} • {min(max_issues, len(df))} issues • {len(csv_for_ai)} caracteres")
     
     if run_analysis:
         if not prompt_text.strip():
             st.warning("Escreva um prompt para a análise.")
             return
         
-        with st.spinner("🤖 Analisando... isso pode levar alguns segundos"):
-            result = analyze_issues_with_gemini(csv_for_ai, prompt_text)
+        with st.spinner(f"🤖 Analisando com {providers[selected_provider]}... isso pode levar alguns segundos"):
+            result = analyze_issues(csv_for_ai, prompt_text, provider=selected_provider)
         
         if result:
             st.session_state.ai_analysis_result = result
@@ -420,7 +431,6 @@ def render_ai_analysis(df: pd.DataFrame):
         st.markdown(f"**Resultado da análise** ({st.session_state.get('ai_analysis_prompt', '')})")
         st.markdown(st.session_state.ai_analysis_result)
         
-        # Export result
         st.download_button(
             label="📥 Exportar Análise (Markdown)",
             data=st.session_state.ai_analysis_result.encode("utf-8"),
