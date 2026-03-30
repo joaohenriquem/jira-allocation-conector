@@ -536,7 +536,7 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
             jql_parts.append(f"created <= '{end_str}'")
     
     jql = " AND ".join(jql_parts)
-    cache_key = f"issues_{hash(jql)}"
+    cache_key = f"issues_full_{hash(jql)}"
     
     cached = CacheManager.get_cached_data(cache_key)
     if cached:
@@ -548,9 +548,22 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
                  "customfield_10370", "customfield_10016", "customfield_10026",
                  "customfield_11891",
                  "statuscategorychangedate"]
-        result = connector.get_issues(jql, fields)
-        CacheManager.set_cached_data(cache_key, result.issues)
-        return result.issues
+        
+        # Fetch all pages using nextPageToken
+        all_issues = []
+        next_token = None
+        while True:
+            result = connector.get_issues(jql, fields, next_page_token=next_token)
+            all_issues.extend(result.issues)
+            
+            is_last = getattr(result, 'is_last', True)
+            next_token = getattr(result, 'next_page_token', None)
+            
+            if is_last or not next_token:
+                break
+        
+        CacheManager.set_cached_data(cache_key, all_issues)
+        return all_issues
     except Exception as e:
         st.warning(f"⚠️ Erro ao carregar issues: {e}")
         return []
@@ -1519,14 +1532,15 @@ def render_professional_view_tab(
         
         # Filter professionals by team if selected
         if prof_selected_team and professionals:
+            from src.config.teams_loader import _normalize
             team_members = get_team_members_by_name(teams, prof_selected_team)
-            team_members_lower = [m.lower() for m in team_members]
+            team_members_norm = [_normalize(m) for m in team_members]
             
             filtered_professionals = []
             for prof in professionals:
-                prof_name_lower = prof.display_name.lower()
-                for member in team_members_lower:
-                    if member in prof_name_lower or prof_name_lower in member:
+                prof_name_norm = _normalize(prof.display_name)
+                for member in team_members_norm:
+                    if member in prof_name_norm or prof_name_norm in member:
                         filtered_professionals.append(prof)
                         break
             professionals = filtered_professionals
@@ -1727,19 +1741,19 @@ def render_dashboard_content(
     
     # Filter issues by team if teams are selected
     if selected_teams:
+        from src.config.teams_loader import _normalize
         teams = load_teams()
         team_members = []
         for team_name in selected_teams:
             team_members.extend(get_team_members_by_name(teams, team_name))
-        team_members_lower = [m.lower() for m in team_members]
+        team_members_norm = [_normalize(m) for m in team_members]
         
         filtered_issues = []
         for issue in issues:
             if issue.assignee_name:
-                assignee_lower = issue.assignee_name.lower()
-                # Check if assignee matches any team member
-                for member in team_members_lower:
-                    if member in assignee_lower or assignee_lower in member:
+                assignee_norm = _normalize(issue.assignee_name)
+                for member in team_members_norm:
+                    if member in assignee_norm or assignee_norm in member:
                         filtered_issues.append(issue)
                         break
         issues = filtered_issues

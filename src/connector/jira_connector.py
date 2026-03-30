@@ -604,55 +604,70 @@ class JiraConnector:
         self,
         jql: str,
         fields: List[str],
-        start_at: int = 0
+        start_at: int = 0,
+        next_page_token: str = None
     ) -> PaginatedIssues:
         """
         Extract issues with pagination and JQL.
-        
+
+        Uses the new Jira Cloud /rest/api/3/search/jql endpoint which
+        paginates via nextPageToken/isLast instead of total/startAt.
+
         Args:
             jql: JQL query string
             fields: List of fields to retrieve
-            start_at: Starting index for pagination
-            
+            start_at: Starting index (kept for compatibility)
+            next_page_token: Token for next page (new API)
+
         Returns:
             PaginatedIssues with issues and pagination info
         """
         try:
-            # Use new Jira Cloud API endpoint (as of 2024)
-            # See: https://developer.atlassian.com/changelog/#CHANGE-2046
+            params = {
+                "jql": jql,
+                "maxResults": self.DEFAULT_PAGE_SIZE,
+                "fields": ",".join(fields)
+            }
+
+            if next_page_token:
+                params["nextPageToken"] = next_page_token
+
             response = self._request_with_retry(
                 "GET",
                 "/rest/api/3/search/jql",
-                params={
-                    "jql": jql,
-                    "startAt": start_at,
-                    "maxResults": self.DEFAULT_PAGE_SIZE,
-                    "fields": ",".join(fields)
-                }
+                params=params
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 issues = []
-                
+
                 for item in data.get("issues", []):
                     issue = self._parse_issue(item)
                     issues.append(issue)
-                
+
+                is_last = data.get("isLast", True)
+                token = data.get("nextPageToken")
+
                 logger.debug(
                     "issues_fetched",
                     count=len(issues),
-                    start_at=start_at,
-                    total=data.get('total', 0)
+                    is_last=is_last,
+                    has_next_token=bool(token)
                 )
-                
-                return PaginatedIssues(
+
+                result = PaginatedIssues(
                     issues=issues,
                     start_at=start_at,
-                    max_results=data.get("maxResults", self.DEFAULT_PAGE_SIZE),
-                    total=data.get("total", 0)
+                    max_results=self.DEFAULT_PAGE_SIZE,
+                    total=0  # Not provided by new API
                 )
-                
+                # Store pagination state on the result
+                result.is_last = is_last
+                result.next_page_token = token
+
+                return result
+
             elif response.status_code == 400:
                 error_msg = response.json().get("errorMessages", ["Invalid JQL"])
                 raise ValueError(f"Invalid JQL query: {error_msg}")
@@ -664,11 +679,12 @@ class JiraConnector:
                 raise ValueError(
                     f"Failed to search issues: HTTP {response.status_code}"
                 )
-                
+
         except requests.exceptions.ConnectionError:
             raise ValueError("Connection error while searching issues")
         except requests.exceptions.Timeout:
             raise ValueError("Timeout while searching issues")
+
 
     def _parse_issue(self, data: dict) -> Issue:
         """

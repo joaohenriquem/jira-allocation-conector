@@ -6,8 +6,15 @@ Loads team configuration from times.json and provides helper functions.
 
 import json
 import os
+import unicodedata
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass, field
+
+
+def _normalize(text: str) -> str:
+    """Remove accents and lowercase for comparison."""
+    nfkd = unicodedata.normalize("NFKD", text)
+    return "".join(c for c in nfkd if not unicodedata.combining(c)).lower().strip()
 
 
 @dataclass
@@ -105,11 +112,12 @@ def get_all_member_names(teams: List[Team]) -> List[str]:
 
 
 def find_team_for_member(teams: List[Team], member_name: str) -> Optional[str]:
-    """Find which team a member belongs to."""
-    member_lower = member_name.lower()
+    """Find which team a member belongs to (accent-insensitive)."""
+    member_norm = _normalize(member_name)
     for team in teams:
         for name in team.all_names:
-            if name.lower() == member_lower or member_lower in name.lower() or name.lower() in member_lower:
+            name_norm = _normalize(name)
+            if name_norm == member_norm or member_norm in name_norm or name_norm in member_norm:
                 return team.time
     return None
 
