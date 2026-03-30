@@ -553,7 +553,11 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
         all_issues = []
         next_token = None
         while True:
-            result = connector.get_issues(jql, fields, next_page_token=next_token)
+            try:
+                result = connector.get_issues(jql, fields, next_page_token=next_token)
+            except TypeError:
+                # Fallback for older connector without next_page_token param
+                result = connector.get_issues(jql, fields, start_at=len(all_issues))
             all_issues.extend(result.issues)
             
             is_last = getattr(result, 'is_last', True)
