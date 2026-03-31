@@ -164,4 +164,4 @@ Edite `src/config/times.json` para gerenciar times e membros.
 
 ## Licença
 
-Projeto interno Efí - uso restrito.
+Projeto interno Efí - Uso restrito.
