@@ -51,7 +51,6 @@ from src.ui.charts import (
     render_combined_allocation_chart,
 )
 from src.ui.professional_view import render_professional_view, render_professional_view_content
-from src.ui.legacy_view import render_legacy_view
 from src.ui.cycle_view import render_cycle_view_tab
 from src.ui.report_view import render_report_tab
 from src.metrics.professional_metrics import ProfessionalMetricsEngine
