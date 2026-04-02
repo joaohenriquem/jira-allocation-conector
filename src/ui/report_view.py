@@ -386,15 +386,20 @@ def render_ai_analysis(df: pd.DataFrame):
             st.code(prompt_text, language=None)
     
     # Limit data to avoid token limits
-    max_issues = st.slider(
-        "Máximo de issues para análise",
-        min_value=10,
-        max_value=min(500, len(df)),
-        value=min(50, len(df)),
-        step=10,
-        key="ai_max_issues",
-        help="Limite para evitar exceder o limite de tokens da API"
-    )
+    total_issues = len(df)
+    if total_issues <= 10:
+        max_issues = total_issues
+        st.info(f"Todas as {total_issues} issues serão incluídas na análise.")
+    else:
+        max_issues = st.slider(
+            "Máximo de issues para análise",
+            min_value=10,
+            max_value=min(500, total_issues),
+            value=min(50, total_issues),
+            step=10,
+            key="ai_max_issues",
+            help="Limite para evitar exceder o limite de tokens da API"
+        )
     
     # Prepare CSV data
     export_cols = ["Chave", "Tipo", "Resumo", "Status", "Responsável", "Time", "Tamanho", "Lead Time (dias)"]

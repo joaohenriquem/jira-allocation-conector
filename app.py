@@ -529,20 +529,34 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
         types_str = ", ".join(f'"{t}"' for t in sorted_types)
         jql_parts.append(f"issuetype IN ({types_str})")
     
-    # Date range filter
+    # Date range filter (created OR updated in period)
     if filters.date_range:
-        if filters.date_range.start:
+        date_conditions = []
+        if filters.date_range.start and filters.date_range.end:
             start_str = filters.date_range.start.strftime("%Y-%m-%d")
-            jql_parts.append(f"created >= '{start_str}'")
-        if filters.date_range.end:
             end_str = filters.date_range.end.strftime("%Y-%m-%d")
-            jql_parts.append(f"created <= '{end_str}'")
+            date_conditions.append(f"(created >= '{start_str}' AND created <= '{end_str}')")
+            date_conditions.append(f"(updated >= '{start_str}' AND updated <= '{end_str}')")
+            jql_parts.append(f"({' OR '.join(date_conditions)})")
+        else:
+            if filters.date_range.start:
+                start_str = filters.date_range.start.strftime("%Y-%m-%d")
+                jql_parts.append(f"(created >= '{start_str}' OR updated >= '{start_str}')")
+            if filters.date_range.end:
+                end_str = filters.date_range.end.strftime("%Y-%m-%d")
+                jql_parts.append(f"(created <= '{end_str}' OR updated <= '{end_str}')")
     
     jql = " AND ".join(jql_parts)
+    
+    import logging
+    logging.getLogger(__name__).info(f"[load_issues] JQL: {jql}")
+    st.toast(f"JQL: {jql}", icon="🔍")
+    
     cache_key = f"issues_full_{hash(jql)}"
     
     cached = CacheManager.get_cached_data(cache_key)
     if cached:
+        st.toast(f"Cache hit: {len(cached)} issues", icon="📦")
         return cached
     
     try:
@@ -570,9 +584,11 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
                 break
         
         CacheManager.set_cached_data(cache_key, all_issues)
+        st.toast(f"Jira retornou: {len(all_issues)} issues", icon="✅")
         return all_issues
     except Exception as e:
         st.warning(f"⚠️ Erro ao carregar issues: {e}")
+        st.toast(f"Erro JQL: {e}", icon="❌")
         return []
 
 
