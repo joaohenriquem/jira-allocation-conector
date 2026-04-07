@@ -649,7 +649,7 @@ def render_productivity_metrics(metrics: ProductivityMetrics) -> None:
         st.metric(
             "Lead Time Médio",
             lead_time_display,
-            help="Tempo médio desde criação até resolução"
+            help="Tempo médio desde início até resolução"
         )
     
     with col3:
@@ -706,7 +706,7 @@ def render_productivity_metrics(metrics: ProductivityMetrics) -> None:
             title="Lead Time",
             value=lead_time_display,
             status=lead_status,
-            tooltip="Tempo desde a criação da issue até sua resolução"
+            tooltip="Tempo desde o início da issue até sua resolução"
         )
     
     with col2:

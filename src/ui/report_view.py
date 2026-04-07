@@ -22,9 +22,10 @@ def _build_issues_dataframe(issues: List[Issue]) -> pd.DataFrame:
         team = find_team_for_member(teams, issue.assignee_name) if issue.assignee_name else "Sem time"
         
         # Calculate lead time in days
+        # Calculate lead time in days (started_date -> resolution_date)
         lead_time = None
-        if issue.resolution_date and issue.created_date:
-            lead_time = (issue.resolution_date - issue.created_date).days
+        if issue.resolution_date and issue.started_date:
+            lead_time = (issue.resolution_date - issue.started_date).days
         
         # Calculate cycle time in days
         cycle_time = None

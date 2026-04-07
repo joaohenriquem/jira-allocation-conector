@@ -409,8 +409,8 @@ def _render_capacity_section(issues: List[Issue], config: Any):
     throughput: Dict[str, Dict[str, float]] = defaultdict(lambda: {"sum": 0, "count": 0})
     
     for issue in done_issues:
-        if issue.created_date and issue.resolution_date:
-            dias = (issue.resolution_date - issue.created_date).days
+        if issue.started_date and issue.resolution_date:
+            dias = (issue.resolution_date - issue.started_date).days
             if dias >= 0:
                 tipo = issue.issue_type or "Outros"
                 # Ajustar para dias úteis (4/7)
@@ -424,8 +424,8 @@ def _render_capacity_section(issues: List[Issue], config: Any):
     
     for issue in done_issues:
         tipo = issue.issue_type or "Outros"
-        if issue.created_date and issue.resolution_date:
-            dias = (issue.resolution_date - issue.created_date).days * (4/7)
+        if issue.started_date and issue.resolution_date:
+            dias = (issue.resolution_date - issue.started_date).days * (4/7)
             capacity_data[tipo]["res_dias"] += max(0.1, dias)
             capacity_data[tipo]["res_qtd"] += 1
     
@@ -604,10 +604,10 @@ def _render_monthly_charts(issues: List[Issue]):
         atend: Dict[str, Dict[str, float]] = defaultdict(lambda: {"sum": 0, "count": 0})
         
         for issue in issues:
-            if issue.created_date and issue.resolution_date and issue.status_category == "Done":
-                dias = (issue.resolution_date - issue.created_date).days
+            if issue.started_date and issue.resolution_date and issue.status_category == "Done":
+                dias = (issue.resolution_date - issue.started_date).days
                 if dias >= 0:
-                    key = issue.created_date.strftime("%Y-%m")
+                    key = issue.started_date.strftime("%Y-%m")
                     atend[key]["sum"] += dias
                     atend[key]["count"] += 1
         

@@ -64,15 +64,16 @@ def init_sentry() -> bool:
             dsn=dsn,
             environment=environment,
             send_default_pii=True,
-            debug=True,  # Set to True for debugging
-            transport=InsecureHttpTransport,
+            debug=True,
             traces_sample_rate=0.1,
             profiles_sample_rate=0.1,
             integrations=[logging_integration],
             before_send=before_send,
         )
+        print(f"[SENTRY] Inicializado com DSN={dsn[:50]}... | env={environment}")
         return True
-    except Exception:
+    except Exception as e:
+        print(f"[SENTRY] Falha ao inicializar: {e}")
         return False
 
 

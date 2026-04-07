@@ -822,11 +822,11 @@ def calculate_productivity_metrics(issues: List[Issue]) -> ProductivityMetrics:
     done_issues = [i for i in issues if i.status_category == "Done"]
     throughput = len(done_issues)
     
-    # Lead time: resolution_date - created_date
+    # Lead time: resolution_date - started_date
     lead_times = []
     for issue in done_issues:
-        if issue.resolution_date and issue.created_date:
-            delta = issue.resolution_date - issue.created_date
+        if issue.resolution_date and issue.started_date:
+            delta = issue.resolution_date - issue.started_date
             lead_times.append(delta.total_seconds() / 3600)
     lead_time_avg = sum(lead_times) / len(lead_times) if lead_times else None
     
@@ -1108,7 +1108,7 @@ def render_productivity_section(
     with col2:
         lead_time_display = f"{productivity_metrics.lead_time_avg_hours:.1f}h" if productivity_metrics.lead_time_avg_hours else "N/A"
         st.metric("Lead Time Médio", lead_time_display,
-                 help="Tempo médio desde criação até resolução")
+                 help="Tempo médio desde início até resolução")
     
     with col3:
         cycle_time_display = f"{productivity_metrics.cycle_time_avg_hours:.1f}h" if productivity_metrics.cycle_time_avg_hours else "N/A"

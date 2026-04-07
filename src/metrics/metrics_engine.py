@@ -319,7 +319,7 @@ class MetricsEngine:
         """
         Calculate average lead time in hours.
         
-        Lead time = resolution_date - created_date
+        Lead time = resolution_date - started_date
         
         Args:
             issues: List of issues to analyze
@@ -330,8 +330,8 @@ class MetricsEngine:
         lead_times: List[float] = []
         
         for issue in issues:
-            if issue.resolution_date and issue.created_date:
-                delta = issue.resolution_date - issue.created_date
+            if issue.resolution_date and issue.started_date:
+                delta = issue.resolution_date - issue.started_date
                 hours = delta.total_seconds() / 3600
                 if hours >= 0:  # Only positive lead times
                     lead_times.append(hours)

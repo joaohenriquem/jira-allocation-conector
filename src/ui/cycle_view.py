@@ -306,8 +306,8 @@ def render_cycle_metrics(issues: List[Issue]):
     if done_issues:
         lead_times = []
         for issue in done_issues:
-            if issue.resolution_date and issue.created_date:
-                delta = (issue.resolution_date - issue.created_date).days
+            if issue.resolution_date and issue.started_date:
+                delta = (issue.resolution_date - issue.started_date).days
                 if delta >= 0:
                     lead_times.append(delta)
         
@@ -316,7 +316,7 @@ def render_cycle_metrics(issues: List[Issue]):
             min_lt = min(lead_times)
             max_lt = max(lead_times)
             
-            st.markdown("**Lead Time (Ciclo Completo - Criação até Conclusão)**")
+            st.markdown("**Lead Time (Início até Conclusão)**")
             c1, c2, c3 = st.columns(3)
             with c1:
                 st.metric("Médio", f"{avg_lt:.0f} dias")
@@ -492,8 +492,8 @@ def render_cycle_view_tab(issues: List[Issue]):
     
     lead_times = []
     for issue in done_issues:
-        if issue.resolution_date and issue.created_date:
-            delta = (issue.resolution_date - issue.created_date).days
+        if issue.resolution_date and issue.started_date:
+            delta = (issue.resolution_date - issue.started_date).days
             if delta >= 0:
                 lead_times.append(delta)
     lead_time_avg = sum(lead_times) / len(lead_times) if lead_times else 0
