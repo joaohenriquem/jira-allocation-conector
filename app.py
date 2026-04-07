@@ -2084,18 +2084,17 @@ def main():
             rc1, rc2, rc3 = st.columns([2, 2, 2])
             
             with rc1:
+                _tooltip_lines = "  \n".join(f"• {p['key']} - {p['name']}" for p in _allowed_projects)
+                _tooltip = f"**Projetos liberados:**  \n{_tooltip_lines}" if _allowed_projects else ""
                 report_project_options = {p.key: f"{p.key} - {p.name}" for p in projects}
                 report_selected_projects = st.multiselect(
                     "Projetos",
                     options=list(report_project_options.keys()),
                     format_func=lambda x: report_project_options.get(x, x),
                     key="report_filter_projects",
-                    placeholder="Selecione os projetos"
+                    placeholder="Selecione os projetos",
+                    help=_tooltip
                 ) if report_project_options else []
-                
-                with st.popover("ℹ️ Projetos liberados"):
-                    for _p in _allowed_projects:
-                        st.markdown(f"• **{_p['key']}** - {_p['name']}")
             
             with rc2:
                 report_start = st.date_input("Data Início", value=None, key="report_filter_start")
