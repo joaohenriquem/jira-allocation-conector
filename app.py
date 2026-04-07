@@ -176,7 +176,8 @@ def check_access() -> bool:
             "tipo": "login_localhost"
         })
         import sentry_sdk
-        sentry_sdk.flush(timeout=2)
+        print(f"[ACESSO] Login localhost | email=dev@localhost | ip=127.0.0.1 | sentry_initialized={sentry_initialized}")
+        sentry_sdk.flush(timeout=5)
         return True
     
     if st.session_state.authenticated:
@@ -202,7 +203,8 @@ def check_access() -> bool:
             "tipo": "ip_blocked"
         })
         import sentry_sdk
-        sentry_sdk.flush(timeout=2)
+        print(f"[ACESSO] IP bloqueado | ip={st.session_state.get('client_ip', 'desconhecido')}")
+        sentry_sdk.flush(timeout=5)
         st.error("🚫 Acesso não autorizado.")
         st.stop()
         return False
