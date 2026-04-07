@@ -78,6 +78,14 @@ def render_report_summary(df: pd.DataFrame):
         st.metric("Times", teams)
 
 
+def _style_total_row(df_styled):
+    """Apply bold styling to the last row (Total)."""
+    return df_styled.apply(
+        lambda x: ["font-weight: bold" if x.name == len(df_styled.data) - 1 else "" for _ in x],
+        axis=1
+    )
+
+
 def render_report_analysis(df: pd.DataFrame):
     """Render analysis charts for the report."""
     
@@ -87,7 +95,7 @@ def render_report_analysis(df: pd.DataFrame):
     type_counts.columns = ["Tipo", "Quantidade"]
     _total_type = pd.DataFrame([{"Tipo": "Total", "Quantidade": type_counts["Quantidade"].sum()}])
     type_counts = pd.concat([type_counts, _total_type], ignore_index=True)
-    st.dataframe(type_counts, width="stretch", hide_index=True)
+    st.dataframe(_style_total_row(type_counts.style), width="stretch", hide_index=True)
     
     # Issues by assignee
     st.markdown("#### Distribuição por Responsável")
@@ -160,7 +168,7 @@ def render_report_analysis(df: pd.DataFrame):
     team_counts.columns = ["Time", "Quantidade"]
     _total_team = pd.DataFrame([{"Time": "Total", "Quantidade": team_counts["Quantidade"].sum()}])
     team_counts = pd.concat([team_counts, _total_team], ignore_index=True)
-    st.dataframe(team_counts, width="stretch", hide_index=True)
+    st.dataframe(_style_total_row(team_counts.style), width="stretch", hide_index=True)
     
     # Issues by status
     st.markdown("#### Distribuição por Status")
@@ -168,7 +176,7 @@ def render_report_analysis(df: pd.DataFrame):
     status_counts.columns = ["Status", "Quantidade"]
     _total_status = pd.DataFrame([{"Status": "Total", "Quantidade": status_counts["Quantidade"].sum()}])
     status_counts = pd.concat([status_counts, _total_status], ignore_index=True)
-    st.dataframe(status_counts, width="stretch", hide_index=True)
+    st.dataframe(_style_total_row(status_counts.style), width="stretch", hide_index=True)
 
 
 def render_keyword_analysis(df: pd.DataFrame):
