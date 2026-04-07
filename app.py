@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 # Initialize Sentry for error monitoring (before other imports)
-from src.utils.sentry_config import init_sentry, capture_exception, set_user_context
+from src.utils.sentry_config import init_sentry, capture_exception, capture_message, set_user_context
 sentry_initialized = init_sentry()
 
 # Application imports
@@ -170,6 +170,11 @@ def check_access() -> bool:
         st.session_state.user_email = "dev@localhost"
         st.session_state.ip_checked = True
         st.session_state.ip_allowed = True
+        capture_message("Acesso local (localhost)", level="info", extra={
+            "email": "dev@localhost",
+            "ip": "127.0.0.1",
+            "tipo": "login_localhost"
+        })
         return True
     
     if st.session_state.authenticated:
@@ -190,6 +195,10 @@ def check_access() -> bool:
             st.session_state.client_ip = client_ip
     
     if not st.session_state.ip_allowed:
+        capture_message("Acesso bloqueado por IP", level="warning", extra={
+            "ip": st.session_state.get("client_ip", "desconhecido"),
+            "tipo": "ip_blocked"
+        })
         st.error("🚫 Acesso não autorizado.")
         st.stop()
         return False
@@ -281,8 +290,18 @@ def check_access() -> bool:
                         st.session_state.user_email = email_lower
                         # Set Sentry user context
                         set_user_context(email=email_lower)
+                        capture_message("Login autorizado", level="info", extra={
+                            "email": email_lower,
+                            "ip": client_ip or "desconhecido",
+                            "tipo": "login_success"
+                        })
                         st.rerun()
                     else:
+                        capture_message("Tentativa de login com email não autorizado", level="warning", extra={
+                            "email": email_lower,
+                            "ip": client_ip or "desconhecido",
+                            "tipo": "login_denied"
+                        })
                         st.error("Email não autorizado.")
                 else:
                     st.warning("Por favor, digite seu email.")
