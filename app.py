@@ -501,43 +501,36 @@ def load_sprints(connector: Optional[JiraConnector], board_id: Optional[int] = N
     return []
 
 
-def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Issue]:
-    """Load issues from Jira."""
-    if not connector:
-        return []
+def _build_infra_jql(filters: Filters) -> str:
+    """Build JQL specific to the INFRA project (service desk requests)."""
+    infra_request_types = [
+        "Obter ajuda da Infra-Financeira (INFRA)",
+        "Obter ajuda da Infra-Cloud (INFRA)",
+        "Obter ajuda da Infra-Cloud com erros em projetos e aplicações na nuvem (INFRA)",
+        "Obter ajuda da Infra-Cloud com Alteração de parâmetros (INFRA)",
+        "Obter ajuda da Infra-Cloud com Deploy de novos projetos (INFRA)",
+        "Obter ajuda da Infra-Cloud com alertas e monitoramento (INFRA)",
+        "Obter ajuda da Infra-Cloud com Criação de recursos na nuvem (INFRA)",
+        "Obter ajuda da Infra-Cloud Operações (Outros) (INFRA)",
+    ]
+    request_types_str = ", ".join(f'"{rt}"' for rt in infra_request_types)
     
-    # If no project selected, don't load issues (too many)
-    if not filters.project_keys:
-        return []
+    jql_parts = [
+        "project = INFRA",
+        "assignee = empty",
+        'status NOT IN (Cancelado, Closed, Completed, "Concluído", Resolved)',
+        f'"request type" IN ({request_types_str})',
+    ]
     
-    # Build JQL from filters
-    jql_parts = []
-    
-    # Project filter
-    projects_str = ", ".join(filters.project_keys)
-    jql_parts.append(f"project IN ({projects_str})")
-    
-    # Sprint filter - sort IDs for consistent cache key
-    if filters.sprint_ids:
-        sorted_sprint_ids = sorted(filters.sprint_ids)
-        sprint_ids_str = ", ".join(str(sid) for sid in sorted_sprint_ids)
-        jql_parts.append(f"sprint IN ({sprint_ids_str})")
-    
-    # Issue type filter
-    if filters.issue_types:
-        sorted_types = sorted(filters.issue_types)
-        types_str = ", ".join(f'"{t}"' for t in sorted_types)
-        jql_parts.append(f"issuetype IN ({types_str})")
-    
-    # Date range filter (created OR updated in period)
+    # Date range filter
     if filters.date_range:
-        date_conditions = []
         if filters.date_range.start and filters.date_range.end:
             start_str = filters.date_range.start.strftime("%Y-%m-%d")
             end_str = filters.date_range.end.strftime("%Y-%m-%d")
-            date_conditions.append(f"(created >= '{start_str}' AND created <= '{end_str}')")
-            date_conditions.append(f"(updated >= '{start_str}' AND updated <= '{end_str}')")
-            jql_parts.append(f"({' OR '.join(date_conditions)})")
+            jql_parts.append(
+                f"((created >= '{start_str}' AND created <= '{end_str}') "
+                f"OR (updated >= '{start_str}' AND updated <= '{end_str}'))"
+            )
         else:
             if filters.date_range.start:
                 start_str = filters.date_range.start.strftime("%Y-%m-%d")
@@ -547,12 +540,89 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
                 jql_parts.append(f"(created <= '{end_str}' OR updated <= '{end_str}')")
     
     jql = " AND ".join(jql_parts)
+    return f"{jql} ORDER BY priority DESC, updated DESC"
+
+
+def _build_default_jql(filters: Filters) -> str:
+    """Build default JQL for non-INFRA projects."""
+    jql_parts = []
+    
+    projects_str = ", ".join(filters.project_keys)
+    jql_parts.append(f"project IN ({projects_str})")
+    
+    if filters.sprint_ids:
+        sorted_sprint_ids = sorted(filters.sprint_ids)
+        sprint_ids_str = ", ".join(str(sid) for sid in sorted_sprint_ids)
+        jql_parts.append(f"sprint IN ({sprint_ids_str})")
+    
+    if filters.issue_types:
+        sorted_types = sorted(filters.issue_types)
+        types_str = ", ".join(f'"{t}"' for t in sorted_types)
+        jql_parts.append(f"issuetype IN ({types_str})")
+    
+    if filters.date_range:
+        if filters.date_range.start and filters.date_range.end:
+            start_str = filters.date_range.start.strftime("%Y-%m-%d")
+            end_str = filters.date_range.end.strftime("%Y-%m-%d")
+            jql_parts.append(
+                f"((created >= '{start_str}' AND created <= '{end_str}') "
+                f"OR (updated >= '{start_str}' AND updated <= '{end_str}'))"
+            )
+        else:
+            if filters.date_range.start:
+                start_str = filters.date_range.start.strftime("%Y-%m-%d")
+                jql_parts.append(f"(created >= '{start_str}' OR updated >= '{start_str}')")
+            if filters.date_range.end:
+                end_str = filters.date_range.end.strftime("%Y-%m-%d")
+                jql_parts.append(f"(created <= '{end_str}' OR updated <= '{end_str}')")
+    
+    return " AND ".join(jql_parts)
+
+
+def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Issue]:
+    """Load issues from Jira."""
+    if not connector:
+        return []
+    
+    # If no project selected, don't load issues (too many)
+    if not filters.project_keys:
+        return []
+    
+    # Check if INFRA project is selected (special JQL)
+    is_infra_only = filters.project_keys == ["INFRA"]
+    
+    if is_infra_only:
+        jql = _build_infra_jql(filters)
+    else:
+        jql = _build_default_jql(filters)
     
     import logging
     logging.getLogger(__name__).info(f"[load_issues] JQL: {jql}")
     st.toast(f"JQL: {jql}", icon="🔍")
     
-    cache_key = f"issues_full_{hash(jql)}"
+    # Build date JQL fragment for board queries
+    date_jql = ""
+    if not is_infra_only and filters.date_range:
+        date_parts = []
+        if filters.date_range.start and filters.date_range.end:
+            s = filters.date_range.start.strftime("%Y-%m-%d")
+            e = filters.date_range.end.strftime("%Y-%m-%d")
+            date_parts.append(
+                f"((created >= '{s}' AND created <= '{e}') "
+                f"OR (updated >= '{s}' AND updated <= '{e}'))"
+            )
+        else:
+            if filters.date_range.start:
+                s = filters.date_range.start.strftime("%Y-%m-%d")
+                date_parts.append(f"(created >= '{s}' OR updated >= '{s}')")
+            if filters.date_range.end:
+                e = filters.date_range.end.strftime("%Y-%m-%d")
+                date_parts.append(f"(created <= '{e}' OR updated <= '{e}')")
+        if date_parts:
+            date_jql = " AND ".join(date_parts)
+    
+    # Cache key includes board strategy
+    cache_key = f"issues_full_{hash(jql)}_boards"
     
     cached = CacheManager.get_cached_data(cache_key)
     if cached:
@@ -561,27 +631,57 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
     
     try:
         fields = ["summary", "status", "assignee", "issuetype", "created",
-                 "resolutiondate", "labels", "components", 
+                 "updated", "resolutiondate", "labels", "components", 
                  "customfield_10370", "customfield_10016", "customfield_10026",
                  "customfield_11891",
                  "statuscategorychangedate"]
         
-        # Fetch all pages using nextPageToken
         all_issues = []
-        next_token = None
-        while True:
-            try:
-                result = connector.get_issues(jql, fields, next_page_token=next_token)
-            except TypeError:
-                # Fallback for older connector without next_page_token param
-                result = connector.get_issues(jql, fields, start_at=len(all_issues))
-            all_issues.extend(result.issues)
-            
-            is_last = getattr(result, 'is_last', True)
-            next_token = getattr(result, 'next_page_token', None)
-            
-            if is_last or not next_token:
-                break
+        seen_keys = set()
+        
+        # For non-INFRA projects, try fetching via boards to get cross-project issues
+        if not is_infra_only:
+            for proj_key in filters.project_keys:
+                try:
+                    boards = connector.get_boards(project_key=proj_key)
+                    if boards:
+                        for board in boards:
+                            board_id = board["id"]
+                            st.toast(f"Board: {board['name']} (ID: {board_id})", icon="📋")
+                            next_token = None
+                            while True:
+                                result = connector.get_board_issues(
+                                    board_id, fields, jql_extra=date_jql or None, next_page_token=next_token
+                                )
+                                for issue in result.issues:
+                                    if issue.key not in seen_keys:
+                                        seen_keys.add(issue.key)
+                                        all_issues.append(issue)
+                                
+                                is_last = getattr(result, 'is_last', True)
+                                next_token = getattr(result, 'next_page_token', None)
+                                if is_last or not next_token:
+                                    break
+                except Exception as e:
+                    st.toast(f"Board fetch falhou para {proj_key}: {e}", icon="⚠️")
+        
+        # If no board issues found (or INFRA), fallback to JQL search
+        if not all_issues:
+            next_token = None
+            while True:
+                try:
+                    result = connector.get_issues(jql, fields, next_page_token=next_token)
+                except TypeError:
+                    result = connector.get_issues(jql, fields, start_at=len(all_issues))
+                for issue in result.issues:
+                    if issue.key not in seen_keys:
+                        seen_keys.add(issue.key)
+                        all_issues.append(issue)
+                
+                is_last = getattr(result, 'is_last', True)
+                next_token = getattr(result, 'next_page_token', None)
+                if is_last or not next_token:
+                    break
         
         CacheManager.set_cached_data(cache_key, all_issues)
         st.toast(f"Jira retornou: {len(all_issues)} issues", icon="✅")
@@ -1969,6 +2069,16 @@ def main():
             st.info("👆 Selecione um projeto nos filtros acima para visualizar o ciclo completo.")
     
     with tab_report:
+        # Load allowed projects list
+        import json as _json
+        import os as _os
+        _allowed_projects_path = _os.path.join(_os.path.dirname(__file__), "src", "config", "allowed_projects.json")
+        try:
+            with open(_allowed_projects_path, "r", encoding="utf-8") as _f:
+                _allowed_projects = _json.load(_f)
+        except Exception:
+            _allowed_projects = []
+
         # All report filters together
         with st.expander("🔍 Filtros", expanded=True):
             rc1, rc2, rc3 = st.columns([2, 2, 2])
@@ -1982,6 +2092,10 @@ def main():
                     key="report_filter_projects",
                     placeholder="Selecione os projetos"
                 ) if report_project_options else []
+                
+                with st.popover("ℹ️ Projetos liberados"):
+                    for _p in _allowed_projects:
+                        st.markdown(f"• **{_p['key']}** - {_p['name']}")
             
             with rc2:
                 report_start = st.date_input("Data Início", value=None, key="report_filter_start")
@@ -2072,8 +2186,14 @@ def main():
             st.session_state.report_filter_sig = _current_filter_sig
             st.session_state.pop("ai_analysis_result", None)
         
+        # Date validation
+        _date_invalid = False
+        if report_start and report_end and report_start > report_end:
+            st.error("⚠️ A Data Início não pode ser superior à Data Fim.")
+            _date_invalid = True
+        
         # Reload data when Consultar is clicked (applies date filters)
-        if report_search and report_selected_projects:
+        if report_search and report_selected_projects and not _date_invalid:
             st.session_state.pop("ai_analysis_result", None)
             report_date_range = None
             if report_start or report_end:

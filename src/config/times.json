@@ -138,5 +138,41 @@
       { "nome": "Andrei Silva", "funcao": "Capital" },
       { "nome": "Mateus Pereira", "funcao": "Capital" }
     ]
+  },
+  {
+    "time": "Infraestrutura Corporativa",
+    "techLeader": "Junior Menezes",
+    "membros": [
+      { "nome": "Carlos Lima", "funcao": "Cloud Controles" },
+      { "nome": "Diego Campos", "funcao": "Cloud Controles" },
+      { "nome": "Rafael Rodrigues", "funcao": "Cloud Controles" },
+      { "nome": "Tiago Amaral", "funcao": "Cloud Controles" },
+      { "nome": "Eric Eleutério", "funcao": "Cloud Controles" },
+      { "nome": "Renato Silva", "funcao": "Suporte" },
+      { "nome": "Kelvin Faria", "funcao": "Suporte" },
+      { "nome": "Brenda Melo", "funcao": "Suporte" },
+      { "nome": "Deraldo Filho", "funcao": "Suporte" }
+    ]
+  },
+  {
+    "time": "Change The Bank",
+    "techLeader": "Felipe Nascimento",
+    "membros": [
+      { "nome": "Daniel Lama", "funcao": "FINOPS" },
+      { "nome": "Caroline Gazzi", "funcao": "Banco de Dados" },
+      { "nome": "Leonardo", "funcao": "Banco de Dados" },
+      { "nome": "Cristiano Morais", "funcao": "Cloud CTB" },
+      { "nome": "Claudinei Viana", "funcao": "Cloud CTB" }
+    ]
+  },
+  {
+    "time": "Run The Bank",
+    "techLeader": "Adriano Costa",
+    "membros": [
+      { "nome": "Henrique Santos", "funcao": "Cloud RTB" },
+      { "nome": "Vitor Alves", "funcao": "Cloud RTB" },
+      { "nome": "Tiago Rieger", "funcao": "Cloud RTB" },
+      { "nome": "Rafael Simões", "funcao": "Cloud RTB" }
+    ]
   }
 ]

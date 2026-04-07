@@ -33,6 +33,7 @@ def _build_issues_dataframe(issues: List[Issue]) -> pd.DataFrame:
         
         rows.append({
             "Chave": issue.key,
+            "Projeto": issue.project_key or (issue.key.split("-")[0] if "-" in issue.key else ""),
             "Tipo": issue.issue_type,
             "Resumo": issue.summary,
             "Status": issue.status,
@@ -44,6 +45,7 @@ def _build_issues_dataframe(issues: List[Issue]) -> pd.DataFrame:
             "Labels": ", ".join(issue.labels) if issue.labels else "",
             "Componentes": ", ".join(issue.components) if issue.components else "",
             "Criado": issue.created_date.strftime("%d/%m/%Y %H:%M") if issue.created_date else "",
+            "Atualizado": issue.updated_date.strftime("%d/%m/%Y %H:%M") if issue.updated_date else "",
             "Início": issue.started_date.strftime("%d/%m/%Y %H:%M") if issue.started_date else "",
             "Resolvido": issue.resolution_date.strftime("%d/%m/%Y %H:%M") if issue.resolution_date else "",
             "Lead Time (dias)": lead_time if lead_time is not None else None,
@@ -83,6 +85,8 @@ def render_report_analysis(df: pd.DataFrame):
     st.markdown("#### Distribuição por Tipo")
     type_counts = df["Tipo"].value_counts().reset_index()
     type_counts.columns = ["Tipo", "Quantidade"]
+    _total_type = pd.DataFrame([{"Tipo": "Total", "Quantidade": type_counts["Quantidade"].sum()}])
+    type_counts = pd.concat([type_counts, _total_type], ignore_index=True)
     st.dataframe(type_counts, width="stretch", hide_index=True)
     
     # Issues by assignee
@@ -95,18 +99,75 @@ def render_report_analysis(df: pd.DataFrame):
     assignee_counts["Time"] = assignee_counts["Responsável"].apply(
         lambda x: find_team_for_member(teams, x) or "Sem time"
     )
-    st.dataframe(assignee_counts, width="stretch", hide_index=True)
+    
+    st.caption("Selecione uma linha para ver as issues do responsável")
+    
+    _total_assignee = pd.DataFrame([{"Responsável": "Total", "Quantidade": assignee_counts["Quantidade"].sum(), "Time": ""}])
+    assignee_display = pd.concat([assignee_counts, _total_assignee], ignore_index=True)
+    
+    selection = st.dataframe(
+        assignee_display,
+        width="stretch",
+        hide_index=True,
+        on_select="rerun",
+        selection_mode="single-row",
+        key="assignee_grid"
+    )
+    
+    if selection and selection.selection and selection.selection.rows:
+        selected_idx = selection.selection.rows[0]
+        if selected_idx < len(assignee_counts):  # Ignore total row
+            selected_resp = assignee_counts.iloc[selected_idx]["Responsável"]
+            person_issues = df[df["Responsável"] == selected_resp][["Chave", "Projeto", "Tipo", "Resumo", "Status", "Tamanho", "Criado", "Atualizado", "Início", "Resolvido"]].reset_index(drop=True)
+            
+            # Get Jira base URL for links
+            _jira_base_url = ""
+            _config = st.session_state.get("config")
+            if _config and hasattr(_config, "jira") and hasattr(_config.jira, "base_url"):
+                _jira_base_url = _config.jira.base_url.rstrip("/")
+            
+            @st.dialog(f"Issues de {selected_resp}", width="large")
+            def _show_issues():
+                st.markdown(f"**{len(person_issues)} issues encontradas**")
+                if _jira_base_url:
+                    display_df = person_issues.copy()
+                    display_df["Chave"] = display_df["Chave"].apply(
+                        lambda k: f"{_jira_base_url}/browse/{k}"
+                    )
+                    st.dataframe(
+                        display_df,
+                        hide_index=True,
+                        use_container_width=True,
+                        height=400,
+                        column_config={
+                            "Chave": st.column_config.LinkColumn("Chave", display_text=r"https?://.+/browse/(.+)")
+                        }
+                    )
+                else:
+                    st.dataframe(person_issues, hide_index=True, use_container_width=True, height=400)
+                csv = person_issues.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    f"📥 Exportar ({len(person_issues)} issues)",
+                    data=csv,
+                    file_name=f"issues_{selected_resp.replace(' ', '_')}.csv",
+                    mime="text/csv"
+                )
+            _show_issues()
     
     # Issues by team
     st.markdown("#### Distribuição por Time")
     team_counts = df["Time"].value_counts().reset_index()
     team_counts.columns = ["Time", "Quantidade"]
+    _total_team = pd.DataFrame([{"Time": "Total", "Quantidade": team_counts["Quantidade"].sum()}])
+    team_counts = pd.concat([team_counts, _total_team], ignore_index=True)
     st.dataframe(team_counts, width="stretch", hide_index=True)
     
     # Issues by status
     st.markdown("#### Distribuição por Status")
     status_counts = df["Status"].value_counts().reset_index()
     status_counts.columns = ["Status", "Quantidade"]
+    _total_status = pd.DataFrame([{"Status": "Total", "Quantidade": status_counts["Quantidade"].sum()}])
+    status_counts = pd.concat([status_counts, _total_status], ignore_index=True)
     st.dataframe(status_counts, width="stretch", hide_index=True)
 
 

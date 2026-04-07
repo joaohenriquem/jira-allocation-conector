@@ -398,6 +398,66 @@ class JiraConnector:
             logger.warning("boards_fetch_error", error=str(e))
             return []
 
+    def get_board_issues(self, board_id: int, fields: List[str], jql_extra: str = None, next_page_token: str = None) -> 'PaginatedIssues':
+        """
+        Get issues from a specific board using the Agile API.
+        This returns all issues visible on the board, regardless of project.
+        
+        Args:
+            board_id: The board ID
+            fields: List of fields to retrieve
+            jql_extra: Additional JQL to filter (appended with AND)
+            next_page_token: Token for pagination
+            
+        Returns:
+            PaginatedIssues with issues and pagination info
+        """
+        try:
+            params = {
+                "maxResults": self.DEFAULT_PAGE_SIZE,
+                "fields": ",".join(fields)
+            }
+            if jql_extra:
+                params["jql"] = jql_extra
+            if next_page_token:
+                params["startAt"] = int(next_page_token)
+            
+            response = self._request_with_retry(
+                "GET",
+                f"/rest/agile/1.0/board/{board_id}/issue",
+                params=params
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                issues = []
+                for item in data.get("issues", []):
+                    issue = self._parse_issue(item)
+                    issues.append(issue)
+                
+                total = data.get("total", 0)
+                start_at = data.get("startAt", 0)
+                max_results = data.get("maxResults", self.DEFAULT_PAGE_SIZE)
+                is_last = (start_at + len(issues)) >= total
+                
+                logger.debug("board_issues_fetched", board_id=board_id, count=len(issues), total=total)
+                
+                result = PaginatedIssues(
+                    issues=issues,
+                    start_at=start_at,
+                    max_results=max_results,
+                    total=total
+                )
+                result.is_last = is_last
+                result.next_page_token = str(start_at + len(issues)) if not is_last else None
+                return result
+            else:
+                raise ValueError(f"Failed to get board issues: HTTP {response.status_code}")
+        except requests.exceptions.ConnectionError:
+            raise ValueError("Connection error while fetching board issues")
+        except requests.exceptions.Timeout:
+            raise ValueError("Timeout while fetching board issues")
+
     def get_projects(self, project_keys: List[str]) -> List[Project]:
         """
         Extract data from configured projects.
@@ -757,20 +817,25 @@ class JiraConnector:
         issue_type_obj = fields.get("issuetype") or {}
         issue_type = issue_type_obj.get("name", "Unknown")
         
+        _issue_key = data.get("key", "")
+        _project_key = _issue_key.split("-")[0] if "-" in _issue_key else None
+        
         return Issue(
             jira_id=data.get("id", ""),
-            key=data.get("key", ""),
+            key=_issue_key,
             summary=fields.get("summary", ""),
             issue_type=issue_type,
             status=status,
             status_category=status_category,
             assignee_account_id=assignee_account_id,
             assignee_name=assignee_name,
+            project_key=_project_key,
             t_shirt_size=t_shirt_size,
             story_points=story_points,
             labels=labels,
             components=components,
             created_date=self._parse_datetime(fields.get("created")) or Issue.created_date,
+            updated_date=self._parse_datetime(fields.get("updated")),
             resolution_date=self._parse_datetime(fields.get("resolutiondate")),
             started_date=self._parse_datetime(fields.get("statuscategorychangedate"))
         )

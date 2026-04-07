@@ -1,0 +1,5 @@
+[
+  { "key": "AD", "name": "Adquirência", "description": "Projeto de Adquirência" },
+  { "key": "EM", "name": "Boletos e Carnês", "description": "Projeto de Boletos e Carnês" },
+  { "key": "OFI", "name": "Open Finance", "description": "Projeto de Open Finance" }
+]

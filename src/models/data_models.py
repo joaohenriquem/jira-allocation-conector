@@ -194,11 +194,13 @@ class Issue:
     status_category: Literal["To Do", "In Progress", "Done"]
     assignee_account_id: Optional[str] = None
     assignee_name: Optional[str] = None
+    project_key: Optional[str] = None
     t_shirt_size: Optional[str] = None  # T-Shirt Size (PP, P, M, G, GG, XGG)
     story_points: Optional[float] = None  # Calculado a partir do T-Shirt Size
     labels: List[str] = field(default_factory=list)
     components: List[str] = field(default_factory=list)
     created_date: datetime = field(default_factory=datetime.now)
+    updated_date: Optional[datetime] = None
     resolution_date: Optional[datetime] = None
     started_date: Optional[datetime] = None
     
