@@ -175,6 +175,8 @@ def check_access() -> bool:
             "ip": "127.0.0.1",
             "tipo": "login_localhost"
         })
+        import sentry_sdk
+        sentry_sdk.flush(timeout=2)
         return True
     
     if st.session_state.authenticated:
@@ -199,6 +201,8 @@ def check_access() -> bool:
             "ip": st.session_state.get("client_ip", "desconhecido"),
             "tipo": "ip_blocked"
         })
+        import sentry_sdk
+        sentry_sdk.flush(timeout=2)
         st.error("🚫 Acesso não autorizado.")
         st.stop()
         return False
@@ -295,6 +299,8 @@ def check_access() -> bool:
                             "ip": client_ip or "desconhecido",
                             "tipo": "login_success"
                         })
+                        import sentry_sdk
+                        sentry_sdk.flush(timeout=2)
                         st.rerun()
                     else:
                         capture_message("Tentativa de login com email não autorizado", level="warning", extra={
@@ -302,6 +308,8 @@ def check_access() -> bool:
                             "ip": client_ip or "desconhecido",
                             "tipo": "login_denied"
                         })
+                        import sentry_sdk
+                        sentry_sdk.flush(timeout=2)
                         st.error("Email não autorizado.")
                 else:
                     st.warning("Por favor, digite seu email.")
