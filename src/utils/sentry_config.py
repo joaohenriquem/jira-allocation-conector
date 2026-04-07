@@ -64,7 +64,7 @@ def init_sentry() -> bool:
             dsn=dsn,
             environment=environment,
             send_default_pii=True,
-            debug=False,  # Set to True for debugging
+            debug=True,  # Set to True for debugging
             transport=InsecureHttpTransport,
             traces_sample_rate=0.1,
             profiles_sample_rate=0.1,

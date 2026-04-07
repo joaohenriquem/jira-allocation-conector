@@ -170,7 +170,7 @@ def check_access() -> bool:
         st.session_state.user_email = "dev@localhost"
         st.session_state.ip_checked = True
         st.session_state.ip_allowed = True
-        capture_message("Acesso local (localhost)", level="info", extra={
+        capture_message("Acesso local (localhost)", level="error", extra={
             "email": "dev@localhost",
             "ip": "127.0.0.1",
             "tipo": "login_localhost"
@@ -184,6 +184,17 @@ def check_access() -> bool:
         # Set Sentry user context for existing sessions
         if "user_email" in st.session_state:
             set_user_context(email=st.session_state.user_email)
+        # Log session access (only once per session)
+        if not st.session_state.get("_access_logged"):
+            _email = st.session_state.get("user_email", "desconhecido")
+            print(f"[ACESSO] Sessão ativa | email={_email}")
+            capture_message("Sessão ativa", level="error", extra={
+                "email": _email,
+                "tipo": "session_active"
+            })
+            import sentry_sdk
+            sentry_sdk.flush(timeout=5)
+            st.session_state._access_logged = True
         return True
     
     # Check IP and get client IP for display
@@ -198,7 +209,7 @@ def check_access() -> bool:
             st.session_state.client_ip = client_ip
     
     if not st.session_state.ip_allowed:
-        capture_message("Acesso bloqueado por IP", level="warning", extra={
+        capture_message("Acesso bloqueado por IP", level="error", extra={
             "ip": st.session_state.get("client_ip", "desconhecido"),
             "tipo": "ip_blocked"
         })
@@ -296,22 +307,24 @@ def check_access() -> bool:
                         st.session_state.user_email = email_lower
                         # Set Sentry user context
                         set_user_context(email=email_lower)
-                        capture_message("Login autorizado", level="info", extra={
+                        capture_message("Login autorizado", level="error", extra={
                             "email": email_lower,
                             "ip": client_ip or "desconhecido",
                             "tipo": "login_success"
                         })
                         import sentry_sdk
-                        sentry_sdk.flush(timeout=2)
+                        print(f"[ACESSO] Login autorizado | email={email_lower} | ip={client_ip or 'desconhecido'}")
+                        sentry_sdk.flush(timeout=5)
                         st.rerun()
                     else:
-                        capture_message("Tentativa de login com email não autorizado", level="warning", extra={
+                        capture_message("Tentativa de login com email não autorizado", level="error", extra={
                             "email": email_lower,
                             "ip": client_ip or "desconhecido",
                             "tipo": "login_denied"
                         })
                         import sentry_sdk
-                        sentry_sdk.flush(timeout=2)
+                        print(f"[ACESSO] Login NEGADO | email={email_lower} | ip={client_ip or 'desconhecido'}")
+                        sentry_sdk.flush(timeout=5)
                         st.error("Email não autorizado.")
                 else:
                     st.warning("Por favor, digite seu email.")
