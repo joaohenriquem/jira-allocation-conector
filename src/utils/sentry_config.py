@@ -5,10 +5,15 @@ Initializes Sentry SDK for error tracking and performance monitoring.
 """
 
 import os
+import ssl
 import urllib3
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Disable SSL verification globally for Sentry
+os.environ["CURL_CA_BUNDLE"] = ""
+os.environ["REQUESTS_CA_BUNDLE"] = ""
 
 import sentry_sdk
 from sentry_sdk.transport import HttpTransport
@@ -23,7 +28,13 @@ class InsecureHttpTransport(HttpTransport):
     def _get_pool_options(self, ca_certs):
         options = super()._get_pool_options(ca_certs)
         options["cert_reqs"] = "CERT_NONE"
+        options["ca_certs"] = None
         return options
+    
+    def _make_pool(self, *args, **kwargs):
+        kwargs["cert_reqs"] = "CERT_NONE"
+        kwargs["ca_certs"] = None
+        return super()._make_pool(*args, **kwargs)
 
 
 # Default DSN
@@ -60,12 +71,20 @@ def init_sentry() -> bool:
     )
     
     try:
+        # Try to set SSL cert bundle from certifi
+        try:
+            import certifi
+            os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+        except ImportError:
+            pass
+        
         sentry_sdk.init(
             dsn=dsn,
             environment=environment,
             send_default_pii=True,
-            debug=True,
-            traces_sample_rate=0.1,
+            debug=False,
+            transport=InsecureHttpTransport,
+            traces_sample_rate=1.0,
             profiles_sample_rate=0.1,
             integrations=[logging_integration],
             before_send=before_send,

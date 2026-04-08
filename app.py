@@ -297,10 +297,22 @@ def check_access() -> bool:
         
         with st.form("login_form"):
             email = st.text_input("Email", placeholder="seu.email@empresa.com.br")
+            password = st.text_input("Senha", type="password", placeholder="Digite a senha de acesso")
             submitted = st.form_submit_button("Entrar", width="stretch", type="primary")
             
             if submitted:
-                if email:
+                _access_password = "a3f1b9c7-4e2d-4a8f-9b6e-1d5c3e7f2a0b"
+                if password != _access_password:
+                    capture_message("Tentativa de login com senha incorreta", level="error", extra={
+                        "email": email.lower().strip() if email else "vazio",
+                        "ip": client_ip or "desconhecido",
+                        "tipo": "wrong_password"
+                    })
+                    import sentry_sdk
+                    print(f"[ACESSO] Senha incorreta | email={email} | ip={client_ip or 'desconhecido'}")
+                    sentry_sdk.flush(timeout=5)
+                    st.error("Senha incorreta.")
+                elif email:
                     email_lower = email.lower().strip()
                     if email_lower.endswith("@sejaefi.com.br") or email_lower.endswith("@gerencianet.com.br"):
                         st.session_state.authenticated = True
