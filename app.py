@@ -301,7 +301,13 @@ def check_access() -> bool:
             submitted = st.form_submit_button("Entrar", width="stretch", type="primary")
             
             if submitted:
-                _access_password = "a3f1b9c7-4e2d-4a8f-9b6e-1d5c3e7f2a0b"
+                try:
+                    _access_password = st.secrets.get("ACCESS_PASSWORD", "")
+                except Exception:
+                    _access_password = os.getenv("ACCESS_PASSWORD", "")
+                if not _access_password:
+                    import os as _os
+                    _access_password = _os.getenv("ACCESS_PASSWORD", "")
                 if password != _access_password:
                     capture_message("Tentativa de login com senha incorreta", level="error", extra={
                         "email": email.lower().strip() if email else "vazio",
