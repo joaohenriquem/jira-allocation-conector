@@ -30,11 +30,6 @@ class InsecureHttpTransport(HttpTransport):
         options["cert_reqs"] = "CERT_NONE"
         options["ca_certs"] = None
         return options
-    
-    def _make_pool(self, *args, **kwargs):
-        kwargs["cert_reqs"] = "CERT_NONE"
-        kwargs["ca_certs"] = None
-        return super()._make_pool(*args, **kwargs)
 
 
 # Default DSN

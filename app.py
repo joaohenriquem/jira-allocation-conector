@@ -296,7 +296,7 @@ def check_access() -> bool:
         st.caption(f"🌐 IP: `{client_ip}`" if client_ip else "🌐 IP: não identificado")
         
         with st.form("login_form"):
-            email = st.text_input("Email", placeholder="seu.email@empresa.com.br")
+            email = st.text_input("Email", placeholder="seu.email@sejaefi.com.br")
             password = st.text_input("Senha", type="password", placeholder="Digite a senha de acesso")
             submitted = st.form_submit_button("Entrar", width="stretch", type="primary")
             
