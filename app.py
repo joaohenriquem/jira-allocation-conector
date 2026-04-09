@@ -280,30 +280,39 @@ def check_access() -> bool:
         st.markdown("### Acesso ao Sistema")
         st.markdown("Digite seu email corporativo para continuar.")
         
-        # Show client IP - prefer Streamlit headers (real client IP)
+        # Show client IP
         client_ip = ""
+        # 1. Try Streamlit headers
         try:
-            # X-Forwarded-For contains the real client IP as first entry
             xff = st.context.headers.get("X-Forwarded-For", "")
             if xff:
-                # Last IP in chain is usually the real client IP on Streamlit Cloud
                 ips = [ip.strip() for ip in xff.split(",")]
-                # First non-private IP, or first IP
                 for ip in ips:
-                    if not ip.startswith(("10.", "172.", "192.168.", "127.")):
+                    if not ip.startswith(("10.", "172.16.", "172.17.", "172.18.", "172.19.",
+                                          "172.20.", "172.21.", "172.22.", "172.23.", "172.24.",
+                                          "172.25.", "172.26.", "172.27.", "172.28.", "172.29.",
+                                          "172.30.", "172.31.", "192.168.", "127.")):
                         client_ip = ip
                         break
-                if not client_ip:
-                    client_ip = ips[0]
         except Exception:
             pass
+        # 2. Try X-Real-Ip
         if not client_ip:
             try:
                 client_ip = st.context.headers.get("X-Real-Ip", "")
             except Exception:
                 pass
+        # 3. Fallback: server-side ipify (returns server IP on cloud)
         if not client_ip:
             client_ip = get_client_ip()
+        # 4. Last resort: show internal IP from headers
+        if not client_ip:
+            try:
+                xff = st.context.headers.get("X-Forwarded-For", "")
+                if xff:
+                    client_ip = xff.split(",")[0].strip()
+            except Exception:
+                pass
         
         st.caption(f"🌐 IP: `{client_ip}`" if client_ip else "🌐 IP: não identificado")
         
