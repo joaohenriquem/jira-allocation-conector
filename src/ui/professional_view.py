@@ -477,7 +477,7 @@ def render_professional_view_content(
         )
     except Exception as e:
         loading_placeholder.empty()
-        st.error(f"Erro ao carregar dados de alocação: {str(e)}")
+        st.error("Erro ao carregar dados de alocação. Tente novamente.")
         return
     
     # Clear loading placeholder
@@ -512,7 +512,7 @@ def render_professional_view_content(
             render_professional_timeline(timeline, key_suffix=key_suffix)
         except Exception as e:
             timeline_placeholder.empty()
-            st.warning(f"Não foi possível carregar o timeline: {str(e)}")
+            st.warning("Não foi possível carregar o timeline.")
     
     st.divider()
     
