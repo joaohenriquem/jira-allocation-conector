@@ -450,13 +450,13 @@ def load_configuration() -> Optional[AppConfig]:
         config = config_loader.load()
         return config
     except FileNotFoundError as e:
-        st.warning(f"⚠️ Arquivo de configuração não encontrado: {e}")
+        st.warning("⚠️ Arquivo de configuração não encontrado.")
         return None
     except ValueError as e:
-        st.error(f"❌ Erro na configuração: {e}")
+        st.error("❌ Erro na configuração. Verifique os parâmetros.")
         return None
     except Exception as e:
-        st.error(f"❌ Erro ao carregar configuração: {e}")
+        st.error("❌ Erro ao carregar configuração.")
         return None
 
 
@@ -477,7 +477,7 @@ def initialize_jira_connector(config: AppConfig) -> Optional[JiraConnector]:
         # Credentials not configured - this is expected in demo mode
         return None
     except Exception as e:
-        st.error(f"❌ Erro ao inicializar conector Jira: {e}")
+        st.error("❌ Erro ao inicializar conector Jira. Verifique as credenciais.")
         return None
 
 
@@ -521,7 +521,7 @@ def load_projects(connector: Optional[JiraConnector], config: Optional[AppConfig
             CacheManager.set_cached_data(cache_key, projects, ttl)
             return projects
         except Exception as e:
-            st.warning(f"⚠️ Erro ao carregar projetos: {e}")
+            st.warning("⚠️ Erro ao carregar projetos.")
     
     return []
 
@@ -718,7 +718,6 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
     
     cached = CacheManager.get_cached_data(cache_key)
     if cached:
-        st.toast(f"Cache hit: {len(cached)} issues", icon="📦")
         return cached
     
     try:
@@ -739,7 +738,6 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
                     if boards:
                         for board in boards:
                             board_id = board["id"]
-                            st.toast(f"Board: {board['name']} (ID: {board_id})", icon="📋")
                             next_token = None
                             while True:
                                 result = connector.get_board_issues(
@@ -755,7 +753,7 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
                                 if is_last or not next_token:
                                     break
                 except Exception as e:
-                    st.toast(f"Board fetch falhou para {proj_key}: {e}", icon="⚠️")
+                    logging.getLogger(__name__).warning(f"Board fetch failed for {proj_key}: {e}")
         
         # If no board issues found (or INFRA), fallback to JQL search
         if not all_issues:
@@ -776,11 +774,9 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
                     break
         
         CacheManager.set_cached_data(cache_key, all_issues)
-        st.toast(f"Jira retornou: {len(all_issues)} issues", icon="✅")
         return all_issues
     except Exception as e:
-        st.warning(f"⚠️ Erro ao carregar issues: {e}")
-        st.toast(f"Erro JQL: {e}", icon="❌")
+        st.warning("⚠️ Erro ao carregar issues.")
         return []
 
 
@@ -1703,7 +1699,7 @@ def render_professional_view_tab(
         )
         project_keys = [p.key for p in all_projects]
     except Exception as e:
-        st.error(f"❌ Erro ao carregar projetos do Jira: {str(e)}")
+        st.error("❌ Erro ao carregar projetos do Jira.")
         return
     
     if not project_keys:
@@ -1742,7 +1738,7 @@ def render_professional_view_tab(
                     date_range=prof_date_range
                 )
             except Exception as e:
-                st.error(f"❌ Erro ao carregar profissionais: {str(e)}")
+                st.error("❌ Erro ao carregar profissionais.")
                 return
         
         # Filter professionals by team if selected
@@ -1844,7 +1840,7 @@ def render_professional_view_tab(
             date_range=prof_date_range
         )
     except Exception as e:
-        st.error(f"❌ Erro ao inicializar engine de métricas: {str(e)}")
+        st.error("❌ Erro ao inicializar engine de métricas.")
         return
     
     # If team is selected, show all professionals from that team
