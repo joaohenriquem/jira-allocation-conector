@@ -24,8 +24,8 @@ import streamlit as st
 import logging
 
 
-# Default DSN
-DEFAULT_SENTRY_DSN = "https://182ea334024cc45892e9fad748980bb1@o4511031238852608.ingest.us.sentry.io/4511031242391552"
+# Default DSN - should be configured via SENTRY_DSN secret
+DEFAULT_SENTRY_DSN = ""
 
 
 def init_sentry() -> bool:

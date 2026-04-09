@@ -321,7 +321,16 @@ def check_access() -> bool:
             password = st.text_input("Senha", type="password", placeholder="Digite a senha de acesso")
             submitted = st.form_submit_button("Entrar", width="stretch", type="primary")
             
+            # Rate limiting: max 5 attempts per session
+            if "login_attempts" not in st.session_state:
+                st.session_state.login_attempts = 0
+            
             if submitted:
+                if st.session_state.login_attempts >= 5:
+                    st.error("🔒 Muitas tentativas. Aguarde alguns minutos.")
+                    return False
+                
+                st.session_state.login_attempts = st.session_state.get("login_attempts", 0) + 1
                 try:
                     _access_password = st.secrets.get("ACCESS_PASSWORD", "")
                 except Exception:

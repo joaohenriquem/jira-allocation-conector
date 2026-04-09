@@ -77,7 +77,7 @@ def render_legacy_view(
             CacheManager.set_cached_data(cache_key, all_projects, 3600)
         except Exception as e:
             loading_placeholder.empty()
-            st.error(f"Erro ao carregar projetos: {e}")
+            st.error("Erro ao carregar projetos. Tente novamente.")
             return
         
         loading_placeholder.empty()
@@ -244,7 +244,7 @@ def _load_filtered_issues(connector: JiraConnector, config: Any) -> List[Issue]:
         return result.issues
     except Exception as e:
         loading_placeholder.empty()
-        st.warning(f"Erro ao carregar issues: {e}")
+        st.warning("Erro ao carregar issues. Tente novamente.")
         return []
 
 
