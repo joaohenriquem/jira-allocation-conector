@@ -2280,7 +2280,23 @@ def main():
 
         # All report filters together
         with st.expander("🔍 Filtros", expanded=True):
-            rc1, rc2, rc3 = st.columns([2, 2, 2])
+            from datetime import date as _date
+            _current_year = _date.today().year
+            _quarter_options = {
+                "": "Selecione",
+                "Q1": "Q1 - Jan a Mar",
+                "Q2": "Q2 - Abr a Jun",
+                "Q3": "Q3 - Jul a Set",
+                "Q4": "Q4 - Out a Dez",
+            }
+            _quarter_dates = {
+                "Q1": lambda y: (_date(y, 1, 1), _date(y, 3, 31)),
+                "Q2": lambda y: (_date(y, 4, 1), _date(y, 6, 30)),
+                "Q3": lambda y: (_date(y, 7, 1), _date(y, 9, 30)),
+                "Q4": lambda y: (_date(y, 10, 1), _date(y, 12, 31)),
+            }
+            
+            rc1, rc_q, rc_y, rc2, rc3 = st.columns([2, 1, 0.7, 1.5, 1.5])
             
             with rc1:
                 _tooltip_lines = "  \n".join(f"• {p['key']} - {p['name']}" for p in _allowed_projects)
@@ -2294,6 +2310,26 @@ def main():
                     placeholder="Selecione os projetos",
                     help=_tooltip
                 ) if report_project_options else []
+            
+            with rc_q:
+                _selected_quarter = st.selectbox(
+                    "Quarter",
+                    options=list(_quarter_options.keys()),
+                    format_func=lambda x: _quarter_options[x],
+                    key="report_filter_quarter",
+                )
+            
+            with rc_y:
+                _quarter_year = st.number_input("Ano", value=_current_year, min_value=2020, max_value=2030, key="report_filter_quarter_year")
+            
+            # Auto-fill dates when quarter changes
+            _quarter_sig = f"{_selected_quarter}_{_quarter_year}"
+            if _selected_quarter and _quarter_sig != st.session_state.get("_last_quarter_sig"):
+                st.session_state._last_quarter_sig = _quarter_sig
+                _dates = _quarter_dates[_selected_quarter](_quarter_year)
+                st.session_state.report_filter_start = _dates[0]
+                st.session_state.report_filter_end = _dates[1]
+                st.rerun()
             
             with rc2:
                 report_start = st.date_input("Data Início", value=None, key="report_filter_start")
