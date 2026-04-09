@@ -1,0 +1,38 @@
+# Jira Allocation Connector - Dependencies
+
+# Dashboard UI
+streamlit>=1.28.0,<2.0.0
+
+# HTTP client for Jira API
+requests>=2.31.0,<3.0.0
+
+# YAML configuration loading
+pyyaml>=6.0.1,<7.0.0
+
+# Interactive charts
+plotly>=5.18.0,<6.0.0
+
+# Data manipulation
+pandas>=2.0.0,<3.0.0
+
+# Environment variables
+python-dotenv>=1.0.0,<2.0.0
+
+# Structured logging
+structlog>=23.2.0,<25.0.0
+
+# AI Assistant (opcional)
+openai>=1.0.0,<2.0.0
+
+# MongoDB for persistent cache
+pymongo>=4.6.0,<5.0.0
+
+# Error monitoring
+sentry-sdk>=1.40.0,<3.0.0
+certifi>=2023.0.0
+
+# Encryption for PII
+cryptography>=41.0.0
+
+# Google Gemini AI
+google-genai>=1.0.0

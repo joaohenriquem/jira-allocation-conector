@@ -1,0 +1,59 @@
+# Environment variables (NUNCA commitar!)
+.env
+.streamlit/secrets.toml
+
+# Sensitive config files (use .enc versions)
+src/config/times.json
+src/config/allowed_projects.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.hypothesis/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
