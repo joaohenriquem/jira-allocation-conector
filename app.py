@@ -653,20 +653,30 @@ def _build_default_jql(filters: Filters) -> str:
         jql_parts.append(f"issuetype IN ({types_str})")
     
     if filters.date_range:
+        use_updated = filters.date_mode == "created_or_updated"
         if filters.date_range.start and filters.date_range.end:
             start_str = filters.date_range.start.strftime("%Y-%m-%d")
             end_str = filters.date_range.end.strftime("%Y-%m-%d")
-            jql_parts.append(
-                f"((created >= '{start_str}' AND created <= '{end_str}') "
-                f"OR (updated >= '{start_str}' AND updated <= '{end_str}'))"
-            )
+            if use_updated:
+                jql_parts.append(
+                    f"((created >= '{start_str}' AND created <= '{end_str}') "
+                    f"OR (updated >= '{start_str}' AND updated <= '{end_str}'))"
+                )
+            else:
+                jql_parts.append(f"created >= '{start_str}' AND created <= '{end_str}'")
         else:
             if filters.date_range.start:
                 start_str = filters.date_range.start.strftime("%Y-%m-%d")
-                jql_parts.append(f"(created >= '{start_str}' OR updated >= '{start_str}')")
+                if use_updated:
+                    jql_parts.append(f"(created >= '{start_str}' OR updated >= '{start_str}')")
+                else:
+                    jql_parts.append(f"created >= '{start_str}'")
             if filters.date_range.end:
                 end_str = filters.date_range.end.strftime("%Y-%m-%d")
-                jql_parts.append(f"(created <= '{end_str}' OR updated <= '{end_str}')")
+                if use_updated:
+                    jql_parts.append(f"(created <= '{end_str}' OR updated <= '{end_str}')")
+                else:
+                    jql_parts.append(f"created <= '{end_str}'")
     
     return " AND ".join(jql_parts)
 
@@ -919,6 +929,36 @@ def render_sidebar(projects: List[Project], sprints: List[Sprint]) -> Filters:
 
 
 # =============================================================================
+def _render_issue_type_pie(issues: List[Issue]):
+    """Render pie chart with issue type distribution."""
+    if not issues:
+        return
+    
+    import plotly.express as px
+    from collections import Counter
+    
+    st.subheader("📊 Percentual por Tipo de Issue")
+    
+    _excluded_types = {"Epic", "Épico", "Story", "História"}
+    type_counts = Counter(i.issue_type for i in issues if i.issue_type and i.issue_type not in _excluded_types)
+    
+    fig = px.pie(
+        values=list(type_counts.values()),
+        names=list(type_counts.keys()),
+        hole=0.4,
+        color_discrete_sequence=px.colors.qualitative.Set2
+    )
+    fig.update_traces(textposition="inside", textinfo="percent+label")
+    fig.update_layout(
+        margin=dict(t=20, b=20, l=20, r=20),
+        height=400,
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+# =============================================================================
 # Flow Balance Table (similar to Legacy view)
 # =============================================================================
 
@@ -934,11 +974,14 @@ def render_flow_balance_table(issues: List[Issue]):
     
     st.subheader("📉 Balanço de Vazão por Tipo (Entradas vs. Saídas)")
     
-    # Group by type
+    # Group by type (exclude Epic and Story)
+    _excluded_types = {"Epic", "Épico", "Story", "História"}
     flow_map: dict[str, dict[str, int]] = defaultdict(lambda: {"entradas": 0, "saidas": 0})
     
     for issue in issues:
         tipo = issue.issue_type or "Outros"
+        if tipo in _excluded_types:
+            continue
         flow_map[tipo]["entradas"] += 1
         if issue.status_category == "Done":
             flow_map[tipo]["saidas"] += 1
@@ -1059,6 +1102,10 @@ def render_allocation_section(
     # Flow Balance Table (similar to Legacy view)
     st.divider()
     render_flow_balance_table(issues)
+    
+    # Pie chart: issue distribution by type
+    st.divider()
+    _render_issue_type_pie(issues)
     
     # Individual member details (drill-down) - Task 9.5
     st.divider()
@@ -2208,7 +2255,7 @@ def main():
                 _report_date_range = None
                 if report_start or report_end:
                     _report_date_range = DateRange(start=report_start, end=report_end)
-                _quick_filters = Filters(project_keys=report_selected_projects, date_range=_report_date_range)
+                _quick_filters = Filters(project_keys=report_selected_projects, date_range=_report_date_range, date_mode="created")
                 with st.spinner("Carregando opções de filtro..."):
                     _quick_issues = load_issues(connector, _quick_filters)
                 if _quick_issues:
@@ -2295,7 +2342,8 @@ def main():
             
             report_filters = Filters(
                 project_keys=report_selected_projects,
-                date_range=report_date_range
+                date_range=report_date_range,
+                date_mode="created"
             )
             with st.spinner("Carregando issues..."):
                 report_issues = load_issues(connector, report_filters)
@@ -2489,7 +2537,8 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
         sprint_ids=selected_sprint_ids,
         date_range=date_range,
         assignees=[],
-        issue_types=selected_issue_types
+        issue_types=selected_issue_types,
+        date_mode="created"
     )
 
 
