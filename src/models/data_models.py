@@ -381,6 +381,7 @@ class Filters:
     date_range: Optional[DateRange] = None
     assignees: List[str] = field(default_factory=list)
     issue_types: List[str] = field(default_factory=list)
+    date_mode: Literal["created", "created_or_updated"] = "created"
 
 
 @dataclass
