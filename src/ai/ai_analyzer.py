@@ -62,6 +62,8 @@ def _analyze_with_openai(csv_data: str, prompt: str) -> Optional[str]:
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     import requests
     
+    _ssl_verify = os.getenv("SSL_VERIFY", "true").lower() not in ("false", "0")
+    
     full_prompt = f"""{prompt}
 
 Dados das issues (CSV):
@@ -92,7 +94,7 @@ Dados das issues (CSV):
                 "https://api.openai.com/v1/chat/completions",
                 headers=headers,
                 json=payload,
-                verify=False,
+                verify=_ssl_verify,
                 timeout=120
             )
             
@@ -137,6 +139,8 @@ def _analyze_with_gemini(csv_data: str, prompt: str) -> Optional[str]:
     import requests
     import time
     
+    _ssl_verify2 = os.getenv("SSL_VERIFY", "true").lower() not in ("false", "0")
+    
     full_prompt = f"""{prompt}
 
 Dados das issues (CSV):
@@ -150,8 +154,8 @@ Dados das issues (CSV):
     for model in models_to_try:
         for attempt in range(2):
             try:
-                url = f"https://generativelanguage.googleapis.com/v1/models/{model}:generateContent?key={api_key}"
-                resp = requests.post(url, json=payload, verify=False, timeout=120)
+                url = f"https://generativelanguage.googleapis.com/v1/models/{model}:generateContent"
+                resp = requests.post(url, json=payload, verify=_ssl_verify2, timeout=120, params={"key": api_key})
                 
                 if resp.status_code == 200:
                     data = resp.json()
