@@ -166,8 +166,8 @@ def check_access() -> bool:
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
     
-    # Skip auth on localhost
-    if not st.session_state.authenticated and _is_localhost():
+    # Skip auth on localhost (unless user explicitly logged out)
+    if not st.session_state.authenticated and _is_localhost() and not st.session_state.get("logged_out"):
         st.session_state.authenticated = True
         st.session_state.user_email = encrypt("dev@localhost")
         st.session_state.ip_checked = True
@@ -286,7 +286,15 @@ def check_access() -> bool:
             # X-Forwarded-For contains the real client IP as first entry
             xff = st.context.headers.get("X-Forwarded-For", "")
             if xff:
-                client_ip = xff.split(",")[0].strip()
+                # Last IP in chain is usually the real client IP on Streamlit Cloud
+                ips = [ip.strip() for ip in xff.split(",")]
+                # First non-private IP, or first IP
+                for ip in ips:
+                    if not ip.startswith(("10.", "172.", "192.168.", "127.")):
+                        client_ip = ip
+                        break
+                if not client_ip:
+                    client_ip = ips[0]
         except Exception:
             pass
         if not client_ip:
@@ -295,8 +303,7 @@ def check_access() -> bool:
             except Exception:
                 pass
         if not client_ip:
-            # Fallback to ipify (returns server IP on cloud, client IP on localhost)
-            client_ip = st.session_state.get("client_ip", "")
+            client_ip = get_client_ip()
         
         st.caption(f"🌐 IP: `{client_ip}`" if client_ip else "🌐 IP: não identificado")
         
@@ -2046,18 +2053,29 @@ def main():
                      alt="Efí" style="height: 32px;">
                 <span style="color: #9CA3AF; font-size: 0.9rem; font-weight: 500;">Acompanhamento Jira</span>
             </div>
-            <div style="
-                background: {'rgba(34, 197, 94, 0.15)' if connection_status.connected else 'rgba(239, 68, 68, 0.15)'};
-                color: {'#22C55E' if connection_status.connected else '#EF4444'};
-                padding: 0.4rem 1rem;
-                border-radius: 20px;
-                font-size: 0.8rem;
-                font-weight: 500;
-            ">{status_badge}</div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="
+                    background: {'rgba(34, 197, 94, 0.15)' if connection_status.connected else 'rgba(239, 68, 68, 0.15)'};
+                    color: {'#22C55E' if connection_status.connected else '#EF4444'};
+                    padding: 0.4rem 1rem;
+                    border-radius: 20px;
+                    font-size: 0.8rem;
+                    font-weight: 500;
+                ">{status_badge}</div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True
     )
+    
+    # Logout button (small, top right)
+    _cols_spacer, _col_logout = st.columns([0.94, 0.06])
+    with _col_logout:
+        if st.button("🚪 Sair", key="btn_logout", type="tertiary"):
+            for k in list(st.session_state.keys()):
+                del st.session_state[k]
+            st.session_state.logged_out = True
+            st.rerun()
     
     # Main content area with tabs
     tab_cycle, tab_dashboard, tab_professional, tab_report, tab_teams = st.tabs([
