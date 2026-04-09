@@ -705,21 +705,31 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
     # Build date JQL fragment for board queries
     date_jql = ""
     if not is_infra_only and filters.date_range:
+        use_updated = filters.date_mode == "created_or_updated"
         date_parts = []
         if filters.date_range.start and filters.date_range.end:
             s = filters.date_range.start.strftime("%Y-%m-%d")
             e = filters.date_range.end.strftime("%Y-%m-%d")
-            date_parts.append(
-                f"((created >= '{s}' AND created <= '{e}') "
-                f"OR (updated >= '{s}' AND updated <= '{e}'))"
-            )
+            if use_updated:
+                date_parts.append(
+                    f"((created >= '{s}' AND created <= '{e}') "
+                    f"OR (updated >= '{s}' AND updated <= '{e}'))"
+                )
+            else:
+                date_parts.append(f"created >= '{s}' AND created <= '{e}'")
         else:
             if filters.date_range.start:
                 s = filters.date_range.start.strftime("%Y-%m-%d")
-                date_parts.append(f"(created >= '{s}' OR updated >= '{s}')")
+                if use_updated:
+                    date_parts.append(f"(created >= '{s}' OR updated >= '{s}')")
+                else:
+                    date_parts.append(f"created >= '{s}'")
             if filters.date_range.end:
                 e = filters.date_range.end.strftime("%Y-%m-%d")
-                date_parts.append(f"(created <= '{e}' OR updated <= '{e}')")
+                if use_updated:
+                    date_parts.append(f"(created <= '{e}' OR updated <= '{e}')")
+                else:
+                    date_parts.append(f"created <= '{e}'")
         if date_parts:
             date_jql = " AND ".join(date_parts)
     
