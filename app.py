@@ -793,6 +793,24 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
                 if is_last or not next_token:
                     break
         
+        # Post-fetch date filter to ensure no out-of-range issues
+        if filters.date_range and all_issues:
+            filtered = []
+            for issue in all_issues:
+                created = issue.created_date
+                if filters.date_range.start and created:
+                    from datetime import datetime
+                    start_dt = datetime.combine(filters.date_range.start, datetime.min.time())
+                    if created < start_dt:
+                        continue
+                if filters.date_range.end and created:
+                    from datetime import datetime
+                    end_dt = datetime.combine(filters.date_range.end, datetime.max.time())
+                    if created > end_dt:
+                        continue
+                filtered.append(issue)
+            all_issues = filtered
+        
         CacheManager.set_cached_data(cache_key, all_issues)
         return all_issues
     except Exception as e:
@@ -1033,6 +1051,33 @@ def render_flow_balance_table(issues: List[Issue]):
         st.info("Sem dados para exibir")
 
 
+def _get_jira_base_url() -> str:
+    """Get Jira base URL from session config."""
+    _config = st.session_state.get("config")
+    if _config and hasattr(_config, "jira") and hasattr(_config.jira, "base_url"):
+        return _config.jira.base_url.rstrip("/")
+    return ""
+
+
+def _make_issue_link_column(df_data: list, key_field: str = "Key") -> tuple:
+    """
+    Convert issue keys to Jira links in a dataframe data list.
+    Returns (modified_data, column_config) for st.dataframe.
+    """
+    base_url = _get_jira_base_url()
+    if not base_url:
+        return df_data, {}
+    
+    for row in df_data:
+        if key_field in row:
+            row[key_field] = f"{base_url}/browse/{row[key_field]}"
+    
+    col_config = {
+        key_field: st.column_config.LinkColumn(key_field, display_text=r"https?://.+/browse/(.+)")
+    }
+    return df_data, col_config
+
+
 # =============================================================================
 # Allocation Metrics Section (Task 9.3)
 # =============================================================================
@@ -1179,7 +1224,8 @@ def render_allocation_drilldown(
                         "Início": issue.started_date.strftime("%d/%m/%Y %H:%M") if issue.started_date else "-",
                         "Fim": issue.resolution_date.strftime("%d/%m/%Y %H:%M") if issue.resolution_date else "-"
                     })
-                st.dataframe(issue_data, width="stretch", hide_index=True)
+                _data, _col_cfg = _make_issue_link_column(issue_data)
+                st.dataframe(_data, width="stretch", hide_index=True, column_config=_col_cfg)
 
 
 # =============================================================================
@@ -1295,7 +1341,8 @@ def render_productivity_drilldown(
                     "Início": issue.started_date.strftime("%d/%m/%Y %H:%M") if issue.started_date else "-",
                     "Fim": issue.resolution_date.strftime("%d/%m/%Y %H:%M") if issue.resolution_date else "-"
                 })
-            st.dataframe(issue_data, width="stretch", hide_index=True)
+            _data2, _col_cfg2 = _make_issue_link_column(issue_data)
+            st.dataframe(_data2, width="stretch", hide_index=True, column_config=_col_cfg2)
         else:
             st.info("Nenhuma issue concluída")
     
