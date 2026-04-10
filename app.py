@@ -331,6 +331,21 @@ def check_access() -> bool:
                     return False
                 
                 st.session_state.login_attempts = st.session_state.get("login_attempts", 0) + 1
+                
+                # Check if email is VIP (passwordless access)
+                _email_lower = email.lower().strip() if email else ""
+                
+                try:
+                    _vip_emails = st.secrets.get("VIP_EMAILS", "")
+                except Exception:
+                    _vip_emails = ""
+                if not _vip_emails:
+                    import os as _os
+                    _vip_emails = _os.getenv("VIP_EMAILS", "")
+                _vip_list = [e.strip().lower() for e in _vip_emails.split(",") if e.strip()]
+                _is_vip = _email_lower in _vip_list
+                
+                # Get access password
                 try:
                     _access_password = st.secrets.get("ACCESS_PASSWORD", "")
                 except Exception:
@@ -338,9 +353,10 @@ def check_access() -> bool:
                 if not _access_password:
                     import os as _os
                     _access_password = _os.getenv("ACCESS_PASSWORD", "")
-                if not _access_password:
+                
+                if not _access_password and not _is_vip:
                     st.error("⚠️ Sistema indisponível.")
-                elif password != _access_password:
+                elif not _is_vip and password != _access_password:
                     capture_message("Tentativa de login com senha incorreta", level="error", extra={
                         "email": mask_email(email.lower().strip()) if email else "vazio",
                         "ip": mask_ip(client_ip) if client_ip else "desconhecido",
@@ -350,30 +366,29 @@ def check_access() -> bool:
                     print(f"[ACESSO] Senha incorreta | email={mask_email(email)} | ip={mask_ip(client_ip)}")
                     sentry_sdk.flush(timeout=5)
                     st.error("Senha incorreta.")
-                elif email:
-                    email_lower = email.lower().strip()
-                    if email_lower.endswith("@sejaefi.com.br") or email_lower.endswith("@gerencianet.com.br"):
+                elif _email_lower:
+                    if _email_lower.endswith("@sejaefi.com.br") or _email_lower.endswith("@gerencianet.com.br"):
                         st.session_state.authenticated = True
-                        st.session_state.user_email = encrypt(email_lower)
+                        st.session_state.user_email = encrypt(_email_lower)
                         # Set Sentry user context
-                        set_user_context(email=mask_email(email_lower))
+                        set_user_context(email=mask_email(_email_lower))
                         capture_message("Login autorizado", level="error", extra={
-                            "email": mask_email(email_lower),
+                            "email": mask_email(_email_lower),
                             "ip": mask_ip(client_ip),
-                            "tipo": "login_success"
+                            "tipo": "login_vip" if _is_vip else "login_success"
                         })
                         import sentry_sdk
-                        print(f"[ACESSO] Login autorizado | email={mask_email(email_lower)} | ip={mask_ip(client_ip)}")
+                        print(f"[ACESSO] Login autorizado | email={mask_email(_email_lower)} | ip={mask_ip(client_ip)} | vip={_is_vip}")
                         sentry_sdk.flush(timeout=5)
                         st.rerun()
                     else:
                         capture_message("Tentativa de login com email não autorizado", level="error", extra={
-                            "email": mask_email(email_lower),
+                            "email": mask_email(_email_lower),
                             "ip": mask_ip(client_ip),
                             "tipo": "login_denied"
                         })
                         import sentry_sdk
-                        print(f"[ACESSO] Login NEGADO | email={mask_email(email_lower)} | ip={mask_ip(client_ip)}")
+                        print(f"[ACESSO] Login NEGADO | email={mask_email(_email_lower)} | ip={mask_ip(client_ip)}")
                         sentry_sdk.flush(timeout=5)
                         st.error("Email não autorizado.")
                 else:
