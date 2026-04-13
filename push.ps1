@@ -18,7 +18,7 @@ Write-Host "`n=== Commit: $msg ===" -ForegroundColor Cyan
 git commit -m $msg
 
 Write-Host "`n=== Push para GitHub (origin) ===" -ForegroundColor Green
-git push origin main
+git push origin dev
 
 Write-Host "`n=== Push para GitLab (gitlab) ===" -ForegroundColor Yellow
 git push gitlab main
