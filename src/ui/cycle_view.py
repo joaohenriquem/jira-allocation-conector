@@ -98,48 +98,73 @@ def _get_phase_order(status: str) -> int:
 
 
 def render_cycle_funnel(issues: List[Issue]):
-    """Render a funnel chart showing issues in each phase of the cycle."""
+    """Render two funnel charts: Produto and Engenharia side by side."""
     if not issues:
         st.info("Nenhuma issue encontrada.")
         return
     
-    # Count issues per status
-    status_counts = defaultdict(int)
+    # Classify issues
+    product_counts = defaultdict(int)
+    engineering_counts = defaultdict(int)
+    
     for issue in issues:
-        status_counts[issue.status] += 1
+        phase = _classify_phase(issue.status)
+        if phase in ("Produto", "Handoff"):
+            product_counts[issue.status] += 1
+        else:
+            engineering_counts[issue.status] += 1
     
-    # Sort by phase order
-    sorted_statuses = sorted(status_counts.keys(), key=_get_phase_order)
+    col1, col2 = st.columns(2)
     
-    # Build data
-    labels = []
-    values = []
-    colors = []
+    with col1:
+        sorted_statuses = sorted(product_counts.keys(), key=_get_phase_order)
+        labels = list(sorted_statuses)
+        values = [product_counts[s] for s in sorted_statuses]
+        colors = [PHASE_COLORS.get(_classify_phase(s), "#8B5CF6") for s in sorted_statuses]
+        
+        if labels:
+            fig = go.Figure(go.Funnel(
+                y=labels, x=values,
+                marker=dict(color=colors),
+                textinfo="value+percent initial",
+                textposition="inside",
+            ))
+            fig.update_layout(
+                title="🎯 Funil Produto",
+                font_family="Inter, sans-serif",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                height=max(350, len(labels) * 50),
+                margin=dict(l=20, r=20, t=60, b=20),
+            )
+            st.plotly_chart(fig, use_container_width=True, key="funnel_produto")
+        else:
+            st.info("Nenhuma issue na fase de Produto.")
     
-    for status in sorted_statuses:
-        phase = _classify_phase(status)
-        labels.append(status)
-        values.append(status_counts[status])
-        colors.append(PHASE_COLORS.get(phase, "#6B7280"))
-    
-    fig = go.Figure(go.Funnel(
-        y=labels,
-        x=values,
-        marker=dict(color=colors),
-        textinfo="value+percent initial",
-        textposition="inside",
-    ))
-    
-    fig.update_layout(
-        title="Funil do Ciclo Completo",
-        font_family="Inter, sans-serif",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        height=max(400, len(labels) * 45),
-        margin=dict(l=20, r=20, t=60, b=20),
-    )
-    
-    st.plotly_chart(fig, width="stretch", key="cycle_funnel")
+    with col2:
+        sorted_statuses = sorted(engineering_counts.keys(), key=_get_phase_order)
+        labels = list(sorted_statuses)
+        values = [engineering_counts[s] for s in sorted_statuses]
+        colors = [PHASE_COLORS.get(_classify_phase(s), "#3B82F6") for s in sorted_statuses]
+        
+        if labels:
+            fig = go.Figure(go.Funnel(
+                y=labels, x=values,
+                marker=dict(color=colors),
+                textinfo="value+percent initial",
+                textposition="inside",
+            ))
+            fig.update_layout(
+                title="⚙️ Funil Engenharia",
+                font_family="Inter, sans-serif",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                height=max(350, len(labels) * 50),
+                margin=dict(l=20, r=20, t=60, b=20),
+            )
+            st.plotly_chart(fig, use_container_width=True, key="funnel_engenharia")
+        else:
+            st.info("Nenhuma issue na fase de Engenharia.")
 
 
 def render_cycle_board(issues: List[Issue]):
