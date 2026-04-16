@@ -493,6 +493,75 @@ def render_cycle_flow_balance(issues: List[Issue]):
         st.dataframe(data, width="stretch", hide_index=True)
 
 
+def _classify_area(issue: Issue) -> str:
+    """Classify an issue as Produto or Engenharia based on issue_type."""
+    if not issue.issue_type:
+        return "Engenharia"
+    t = issue.issue_type.lower()
+    product_types = ["produto", "história de usuário", "historia de usuario", "user story", "story", "história", "epic", "épico"]
+    for pt in product_types:
+        if pt in t:
+            return "Produto"
+    return "Engenharia"
+
+
+def render_cycle_area_pies(issues: List[Issue]):
+    """Render two pie charts showing status distribution for Produto and Engenharia."""
+    if not issues:
+        return
+    
+    import plotly.express as px
+    
+    product_issues = [i for i in issues if _classify_area(i) == "Produto"]
+    eng_issues = [i for i in issues if _classify_area(i) == "Engenharia"]
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if product_issues:
+            status_counts = defaultdict(int)
+            for i in product_issues:
+                status_counts[i.status] += 1
+            fig = px.pie(
+                values=list(status_counts.values()),
+                names=list(status_counts.keys()),
+                hole=0.4,
+                color_discrete_sequence=["#8B5CF6", "#A78BFA", "#C4B5FD", "#DDD6FE", "#EDE9FE", "#7C3AED"]
+            )
+            fig.update_traces(textposition="inside", textinfo="percent+label")
+            fig.update_layout(
+                title=f"🟣 Produto ({len(product_issues)} issues)",
+                margin=dict(t=50, b=20, l=20, r=20),
+                height=380,
+                showlegend=False
+            )
+            st.plotly_chart(fig, use_container_width=True, key="pie_produto")
+        else:
+            st.info("Nenhuma issue de Produto.")
+    
+    with col2:
+        if eng_issues:
+            status_counts = defaultdict(int)
+            for i in eng_issues:
+                status_counts[i.status] += 1
+            fig = px.pie(
+                values=list(status_counts.values()),
+                names=list(status_counts.keys()),
+                hole=0.4,
+                color_discrete_sequence=["#3B82F6", "#60A5FA", "#93C5FD", "#BFDBFE", "#DBEAFE", "#2563EB"]
+            )
+            fig.update_traces(textposition="inside", textinfo="percent+label")
+            fig.update_layout(
+                title=f"🔵 Engenharia ({len(eng_issues)} issues)",
+                margin=dict(t=50, b=20, l=20, r=20),
+                height=380,
+                showlegend=False
+            )
+            st.plotly_chart(fig, use_container_width=True, key="pie_engenharia")
+        else:
+            st.info("Nenhuma issue de Engenharia.")
+
+
 def render_cycle_view_tab(issues: List[Issue]):
     """
     Main render function for the Cycle View tab.
@@ -538,6 +607,11 @@ def render_cycle_view_tab(issues: List[Issue]):
     
     # Funnel
     render_cycle_funnel(issues)
+    
+    st.divider()
+    
+    # Area distribution pies
+    render_cycle_area_pies(issues)
     
     st.divider()
     
