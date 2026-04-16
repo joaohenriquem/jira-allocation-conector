@@ -650,6 +650,41 @@ def _build_infra_jql(filters: Filters) -> str:
     return f"{jql} ORDER BY priority DESC, updated DESC"
 
 
+def _build_date_jql(date_range, date_mode: str) -> str:
+    """Build JQL date fragment based on date_mode."""
+    if not date_range:
+        return ""
+    
+    # Map date_mode to JQL field(s)
+    if date_mode == "created_or_updated":
+        if date_range.start and date_range.end:
+            s = date_range.start.strftime("%Y-%m-%d")
+            e = date_range.end.strftime("%Y-%m-%d")
+            return (f"((created >= '{s}' AND created <= '{e}') "
+                    f"OR (updated >= '{s}' AND updated <= '{e}'))")
+        parts = []
+        if date_range.start:
+            s = date_range.start.strftime("%Y-%m-%d")
+            parts.append(f"(created >= '{s}' OR updated >= '{s}')")
+        if date_range.end:
+            e = date_range.end.strftime("%Y-%m-%d")
+            parts.append(f"(created <= '{e}' OR updated <= '{e}')")
+        return " AND ".join(parts)
+    
+    # Single field: created, updated, or resolved
+    field_map = {"created": "created", "updated": "updated", "resolved": "resolved"}
+    jql_field = field_map.get(date_mode, "created")
+    
+    parts = []
+    if date_range.start:
+        s = date_range.start.strftime("%Y-%m-%d")
+        parts.append(f"{jql_field} >= '{s}'")
+    if date_range.end:
+        e = date_range.end.strftime("%Y-%m-%d")
+        parts.append(f"{jql_field} <= '{e}'")
+    return " AND ".join(parts)
+
+
 def _build_default_jql(filters: Filters) -> str:
     """Build default JQL for non-INFRA projects."""
     jql_parts = []
@@ -667,31 +702,9 @@ def _build_default_jql(filters: Filters) -> str:
         types_str = ", ".join(f'"{t}"' for t in sorted_types)
         jql_parts.append(f"issuetype IN ({types_str})")
     
-    if filters.date_range:
-        use_updated = filters.date_mode == "created_or_updated"
-        if filters.date_range.start and filters.date_range.end:
-            start_str = filters.date_range.start.strftime("%Y-%m-%d")
-            end_str = filters.date_range.end.strftime("%Y-%m-%d")
-            if use_updated:
-                jql_parts.append(
-                    f"((created >= '{start_str}' AND created <= '{end_str}') "
-                    f"OR (updated >= '{start_str}' AND updated <= '{end_str}'))"
-                )
-            else:
-                jql_parts.append(f"created >= '{start_str}' AND created <= '{end_str}'")
-        else:
-            if filters.date_range.start:
-                start_str = filters.date_range.start.strftime("%Y-%m-%d")
-                if use_updated:
-                    jql_parts.append(f"(created >= '{start_str}' OR updated >= '{start_str}')")
-                else:
-                    jql_parts.append(f"created >= '{start_str}'")
-            if filters.date_range.end:
-                end_str = filters.date_range.end.strftime("%Y-%m-%d")
-                if use_updated:
-                    jql_parts.append(f"(created <= '{end_str}' OR updated <= '{end_str}')")
-                else:
-                    jql_parts.append(f"created <= '{end_str}'")
+    date_jql = _build_date_jql(filters.date_range, filters.date_mode)
+    if date_jql:
+        jql_parts.append(date_jql)
     
     return " AND ".join(jql_parts)
 
@@ -719,34 +732,8 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
     
     # Build date JQL fragment for board queries
     date_jql = ""
-    if not is_infra_only and filters.date_range:
-        use_updated = filters.date_mode == "created_or_updated"
-        date_parts = []
-        if filters.date_range.start and filters.date_range.end:
-            s = filters.date_range.start.strftime("%Y-%m-%d")
-            e = filters.date_range.end.strftime("%Y-%m-%d")
-            if use_updated:
-                date_parts.append(
-                    f"((created >= '{s}' AND created <= '{e}') "
-                    f"OR (updated >= '{s}' AND updated <= '{e}'))"
-                )
-            else:
-                date_parts.append(f"created >= '{s}' AND created <= '{e}'")
-        else:
-            if filters.date_range.start:
-                s = filters.date_range.start.strftime("%Y-%m-%d")
-                if use_updated:
-                    date_parts.append(f"(created >= '{s}' OR updated >= '{s}')")
-                else:
-                    date_parts.append(f"created >= '{s}'")
-            if filters.date_range.end:
-                e = filters.date_range.end.strftime("%Y-%m-%d")
-                if use_updated:
-                    date_parts.append(f"(created <= '{e}' OR updated <= '{e}')")
-                else:
-                    date_parts.append(f"created <= '{e}'")
-        if date_parts:
-            date_jql = " AND ".join(date_parts)
+    if not is_infra_only:
+        date_jql = _build_date_jql(filters.date_range, filters.date_mode)
     
     # Cache key includes board strategy
     cache_key = f"issues_full_{hash(jql)}_boards"
@@ -810,18 +797,29 @@ def load_issues(connector: Optional[JiraConnector], filters: Filters) -> List[Is
         
         # Post-fetch date filter to ensure no out-of-range issues
         if filters.date_range and all_issues:
+            from datetime import datetime as _dt
+            
+            def _get_filter_date(issue):
+                if filters.date_mode == "updated":
+                    return issue.updated_date
+                elif filters.date_mode == "resolved":
+                    return issue.resolution_date
+                elif filters.date_mode == "created_or_updated":
+                    return issue.created_date or issue.updated_date
+                return issue.created_date
+            
             filtered = []
             for issue in all_issues:
-                created = issue.created_date
-                if filters.date_range.start and created:
-                    from datetime import datetime
-                    start_dt = datetime.combine(filters.date_range.start, datetime.min.time())
-                    if created < start_dt:
+                ref_date = _get_filter_date(issue)
+                if not ref_date:
+                    continue
+                if filters.date_range.start:
+                    start_dt = _dt.combine(filters.date_range.start, _dt.min.time())
+                    if ref_date < start_dt:
                         continue
-                if filters.date_range.end and created:
-                    from datetime import datetime
-                    end_dt = datetime.combine(filters.date_range.end, datetime.max.time())
-                    if created > end_dt:
+                if filters.date_range.end:
+                    end_dt = _dt.combine(filters.date_range.end, _dt.max.time())
+                    if ref_date > end_dt:
                         continue
                 filtered.append(issue)
             all_issues = filtered
@@ -2254,7 +2252,7 @@ def main():
     with tab_cycle:
         # Cycle view filters
         with st.expander("🔍 Filtros", expanded=True):
-            cc1, cc2, cc3 = st.columns([2, 2, 2])
+            cc1, cc_dm, cc2, cc3 = st.columns([2, 1.5, 1.5, 1.5])
             
             with cc1:
                 cycle_project_options = {p.key: f"{p.key} - {p.name}" for p in projects}
@@ -2265,6 +2263,20 @@ def main():
                     key="cycle_filter_projects",
                     placeholder="Selecione os projetos"
                 ) if cycle_project_options else []
+            
+            with cc_dm:
+                _date_mode_options = {
+                    "created": "Data de Criação",
+                    "updated": "Data de Atualização",
+                    "resolved": "Data de Resolução",
+                    "created_or_updated": "Criação ou Atualização",
+                }
+                _cycle_date_mode = st.selectbox(
+                    "Filtrar por",
+                    options=list(_date_mode_options.keys()),
+                    format_func=lambda x: _date_mode_options[x],
+                    key="cycle_filter_date_mode",
+                )
             
             with cc2:
                 cycle_start = st.date_input("Data Início", value=None, key="cycle_filter_start")
@@ -2279,7 +2291,8 @@ def main():
             
             cycle_filters = Filters(
                 project_keys=cycle_selected_projects,
-                date_range=cycle_date_range
+                date_range=cycle_date_range,
+                date_mode=_cycle_date_mode
             )
             cycle_issues = load_issues(connector, cycle_filters)
             render_cycle_view_tab(cycle_issues)
