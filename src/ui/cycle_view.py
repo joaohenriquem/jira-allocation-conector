@@ -240,9 +240,15 @@ def render_cycle_board(issues: List[Issue]):
                 st.markdown(f"**{status_name}** ({len(issues_list)})")
                 
                 issue_data = []
+                _jira_base = ""
+                _cfg = st.session_state.get("config")
+                if _cfg and hasattr(_cfg, "jira") and hasattr(_cfg.jira, "base_url"):
+                    _jira_base = _cfg.jira.base_url.rstrip("/")
+                
                 for issue in issues_list:
+                    _key_val = f"{_jira_base}/browse/{issue.key}" if _jira_base else issue.key
                     issue_data.append({
-                        "Chave": issue.key,
+                        "Chave": _key_val,
                         "Resumo": issue.summary[:60] + "..." if len(issue.summary) > 60 else issue.summary,
                         "Tipo": issue.issue_type,
                         "Responsável": issue.assignee_name or "Sem responsável",
@@ -251,7 +257,10 @@ def render_cycle_board(issues: List[Issue]):
                     })
                 
                 if issue_data:
-                    st.dataframe(issue_data, width="stretch", hide_index=True)
+                    _col_cfg = {}
+                    if _jira_base:
+                        _col_cfg["Chave"] = st.column_config.LinkColumn("Chave", display_text=r"https?://.+/browse/(.+)")
+                    st.dataframe(issue_data, width="stretch", hide_index=True, column_config=_col_cfg)
                 
                 st.markdown("---")
 

@@ -702,6 +702,10 @@ def _build_default_jql(filters: Filters) -> str:
         types_str = ", ".join(f'"{t}"' for t in sorted_types)
         jql_parts.append(f"issuetype IN ({types_str})")
     
+    if filters.epic_keys:
+        epic_keys_str = ", ".join(filters.epic_keys)
+        jql_parts.append(f"(key IN ({epic_keys_str}) OR parent IN ({epic_keys_str}))")
+    
     date_jql = _build_date_jql(filters.date_range, filters.date_mode)
     if date_jql:
         jql_parts.append(date_jql)
@@ -971,32 +975,63 @@ def render_sidebar(projects: List[Project], sprints: List[Sprint]) -> Filters:
 
 # =============================================================================
 def _render_issue_type_pie(issues: List[Issue]):
-    """Render pie chart with issue type distribution."""
+    """Render two pie charts split by Produto and Engenharia."""
     if not issues:
         return
     
     import plotly.express as px
     from collections import Counter
+    from src.ui.cycle_view import _classify_area
+    
+    _excluded_types = {"Epic", "Épico", "Story", "História"}
+    _filtered = [i for i in issues if i.issue_type and i.issue_type not in _excluded_types]
+    
+    _product = [i for i in _filtered if _classify_area(i) == "Produto"]
+    _eng = [i for i in _filtered if _classify_area(i) == "Engenharia"]
     
     st.subheader("📊 Percentual por Tipo de Issue")
     
-    _excluded_types = {"Epic", "Épico", "Story", "História"}
-    type_counts = Counter(i.issue_type for i in issues if i.issue_type and i.issue_type not in _excluded_types)
+    col1, col2 = st.columns(2)
     
-    fig = px.pie(
-        values=list(type_counts.values()),
-        names=list(type_counts.keys()),
-        hole=0.4,
-        color_discrete_sequence=px.colors.qualitative.Set2
-    )
-    fig.update_traces(textposition="inside", textinfo="percent+label")
-    fig.update_layout(
-        margin=dict(t=20, b=20, l=20, r=20),
-        height=400,
-        showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    with col1:
+        if _product:
+            _p_counts = Counter(i.issue_type for i in _product)
+            fig = px.pie(
+                values=list(_p_counts.values()),
+                names=list(_p_counts.keys()),
+                hole=0.4,
+                color_discrete_sequence=["#8B5CF6", "#A78BFA", "#C4B5FD", "#DDD6FE", "#EDE9FE", "#7C3AED"]
+            )
+            fig.update_traces(textposition="inside", textinfo="percent+label")
+            fig.update_layout(
+                title=f"🟣 Produto ({len(_product)})",
+                margin=dict(t=50, b=20, l=20, r=20),
+                height=380, showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+            )
+            st.plotly_chart(fig, use_container_width=True, key="type_pie_produto")
+        else:
+            st.info("Nenhuma issue de Produto.")
+    
+    with col2:
+        if _eng:
+            _e_counts = Counter(i.issue_type for i in _eng)
+            fig = px.pie(
+                values=list(_e_counts.values()),
+                names=list(_e_counts.keys()),
+                hole=0.4,
+                color_discrete_sequence=["#3B82F6", "#60A5FA", "#93C5FD", "#BFDBFE", "#DBEAFE", "#2563EB"]
+            )
+            fig.update_traces(textposition="inside", textinfo="percent+label")
+            fig.update_layout(
+                title=f"🔵 Engenharia ({len(_eng)})",
+                margin=dict(t=50, b=20, l=20, r=20),
+                height=380, showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+            )
+            st.plotly_chart(fig, use_container_width=True, key="type_pie_engenharia")
+        else:
+            st.info("Nenhuma issue de Engenharia.")
 
 
 # =============================================================================
@@ -1521,6 +1556,8 @@ def render_teams_page():
     st.header("👥 Configuração de Times")
     st.markdown("Visualize e gerencie os times e seus membros.")
     
+    st.warning("⚠️ Os times ainda estão em fase de organização e podem haver inconsistências. Em caso de dúvidas, entre em contato com joao.ferreira@sejaefi.com.br")
+    
     st.divider()
     
     # Load teams
@@ -2029,12 +2066,11 @@ def render_dashboard_content(
         st.info("👆 Selecione um ou mais projetos no filtro acima para visualizar as métricas.")
         return
     
-    # Check if at least one filter (sprint or date) is selected
-    has_sprint_filter = bool(filters.sprint_ids)
+    # Check if date filter is selected
     has_date_filter = filters.date_range and (filters.date_range.start or filters.date_range.end)
     
-    if not has_sprint_filter and not has_date_filter:
-        st.info("👆 Selecione uma sprint e/ou um período de datas para visualizar as métricas.")
+    if not has_date_filter:
+        st.info("👆 Selecione um período de datas para visualizar as métricas.")
         return
     
     # Load data based on filters (Task 9.6 - real-time update)
@@ -2043,8 +2079,6 @@ def render_dashboard_content(
     
     # Show current filter info
     filter_parts = [f"Projetos: {', '.join(filters.project_keys)}"]
-    if filters.sprint_ids:
-        filter_parts.append(f"Sprints: {len(filters.sprint_ids)} selecionada(s)")
     if filters.issue_types:
         filter_parts.append(f"Tipos: {', '.join(filters.issue_types)}")
     
@@ -2172,7 +2206,7 @@ def main():
     st.markdown(
         f"""
         <div style="
-            background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+            background: linear-gradient(135deg, #3A3A3A 0%, #4A4A4A 100%);
             padding: 1rem 2rem;
             margin: -1rem -2rem 1rem -2rem;
             display: flex;
@@ -2189,7 +2223,7 @@ def main():
                     background: {'rgba(34, 197, 94, 0.15)' if connection_status.connected else 'rgba(239, 68, 68, 0.15)'};
                     color: {'#22C55E' if connection_status.connected else '#EF4444'};
                     padding: 0.4rem 1rem;
-                    border-radius: 20px;
+                    border-radius: 4px;
                     font-size: 0.8rem;
                     font-weight: 500;
                 ">{status_badge}</div>
@@ -2217,28 +2251,20 @@ def main():
         "👥 Times",
     ])
     
+    # Load allowed projects list (shared across tabs)
+    import os as _os
+    from src.utils.crypto import load_encrypted_json
+    _allowed_projects_path = _os.path.join(_os.path.dirname(__file__), "src", "config", "allowed_projects.json")
+    _allowed_projects = load_encrypted_json(_allowed_projects_path) or []
+    _proj_tooltip_lines = "  \n".join(f"• {p['key']} - {p['name']}" for p in _allowed_projects)
+    _proj_tooltip = f"**Projetos liberados:**  \n{_proj_tooltip_lines}" if _allowed_projects else ""
+    
     with tab_teams:
         render_teams_page()
     
     with tab_dashboard:
-        if st.session_state.get("load_dashboard_tab", False):
-            filters = render_inline_filters(projects, sprints)
-            
-            # Store current filter state to detect changes
-            current_filter_key = f"{filters.project_keys}_{filters.sprint_ids}"
-            if "last_dashboard_filter_key" not in st.session_state:
-                st.session_state.last_dashboard_filter_key = None
-            
-            # Check if filters changed
-            if st.session_state.last_dashboard_filter_key != current_filter_key:
-                st.session_state.last_dashboard_filter_key = current_filter_key
-            
-            render_dashboard_content(filters, projects, sprints, connection_status)
-        else:
-            st.info("👆 Clique abaixo para carregar a visão por projeto.")
-            if st.button("Carregar Visão por Projeto", key="btn_load_dash_tab", type="primary"):
-                st.session_state.load_dashboard_tab = True
-                st.rerun()
+        filters = render_inline_filters(projects, _proj_tooltip)
+        render_dashboard_content(filters, projects, sprints, connection_status)
     
     with tab_professional:
         if st.session_state.get("load_professional_tab", False):
@@ -2261,7 +2287,8 @@ def main():
                     options=list(cycle_project_options.keys()),
                     format_func=lambda x: cycle_project_options.get(x, x),
                     key="cycle_filter_projects",
-                    placeholder="Selecione os projetos"
+                    placeholder="Selecione os projetos",
+                    help=_proj_tooltip
                 ) if cycle_project_options else []
             
             with cc_dm:
@@ -2300,12 +2327,6 @@ def main():
             st.info("👆 Selecione um projeto nos filtros acima para visualizar o ciclo completo.")
     
     with tab_report:
-        # Load allowed projects list
-        import os as _os
-        from src.utils.crypto import load_encrypted_json
-        _allowed_projects_path = _os.path.join(_os.path.dirname(__file__), "src", "config", "allowed_projects.json")
-        _allowed_projects = load_encrypted_json(_allowed_projects_path) or []
-
         # All report filters together
         with st.expander("🔍 Filtros", expanded=True):
             from datetime import date as _date
@@ -2327,8 +2348,7 @@ def main():
             rc1, rc_q, rc_y, rc2, rc3 = st.columns([2, 1, 0.7, 1.5, 1.5])
             
             with rc1:
-                _tooltip_lines = "  \n".join(f"• {p['key']} - {p['name']}" for p in _allowed_projects)
-                _tooltip = f"**Projetos liberados:**  \n{_tooltip_lines}" if _allowed_projects else ""
+                _tooltip = _proj_tooltip
                 report_project_options = {p.key: f"{p.key} - {p.name}" for p in projects}
                 report_selected_projects = st.multiselect(
                     "Projetos",
@@ -2492,13 +2512,13 @@ def main():
             st.info("👆 Selecione um projeto e clique em Consultar para gerar o relatório.")
 
 
-def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Filters:
+def render_inline_filters(projects: List[Project], proj_tooltip: str = "") -> Filters:
     """
     Render inline filters at the top of the dashboard tab.
     
     Args:
         projects: Available projects
-        sprints: Available sprints
+        proj_tooltip: Tooltip text for project selector
         
     Returns:
         Filters object with selected values
@@ -2508,8 +2528,8 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
     team_names = get_team_names(teams)
     
     with st.expander("🔍 Filtros", expanded=True):
-        # First row: Project, Sprint, Team
-        col1, col2, col3 = st.columns([2, 2, 2])
+        # First row: Project, Team
+        col1, col3 = st.columns([2, 2])
         
         with col1:
             # Project filter
@@ -2521,81 +2541,12 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                     options=list(project_options.keys()),
                     format_func=lambda x: project_options.get(x, x),
                     key="inline_filter_projects",
-                    help=f"{len(projects)} projetos disponíveis",
+                    help=proj_tooltip,
                     placeholder="Selecione os projetos"
                 )
             else:
                 selected_projects = []
                 st.warning("⚠️ Nenhum projeto disponível")
-        
-        with col2:
-            # Sprint filter - only enabled when projects are selected
-            if not selected_projects:
-                selected_sprint_ids = st.multiselect(
-                    "Sprints",
-                    options=[],
-                    key="inline_filter_sprints",
-                    disabled=True,
-                    help="Selecione um projeto primeiro",
-                    placeholder="Selecione um projeto primeiro"
-                )
-            else:
-                available_sprints = []
-                if "connector" in st.session_state and st.session_state.connector:
-                    from src.cache.cache_manager import CacheManager
-                    
-                    all_sprints = []
-                    board_names = {}  # Map board_id -> board_name
-                    for project_key in selected_projects:
-                        boards = st.session_state.connector.get_boards(project_key)
-                        for board in boards:
-                            board_id = board.get("id")
-                            board_name = board.get("name", "")
-                            if board_id:
-                                board_names[board_id] = board_name
-                                cache_key = f"sprints_{board_id}"
-                                cached = CacheManager.get_cached_data(cache_key)
-                                if cached:
-                                    all_sprints.extend(cached)
-                                else:
-                                    try:
-                                        board_sprints = st.session_state.connector.get_sprints(board_id)
-                                        CacheManager.set_cached_data(cache_key, board_sprints)
-                                        all_sprints.extend(board_sprints)
-                                    except:
-                                        pass
-                    
-                    seen_ids = set()
-                    unique_sprints = []
-                    for sprint in all_sprints:
-                        if sprint.jira_id not in seen_ids:
-                            seen_ids.add(sprint.jira_id)
-                            unique_sprints.append(sprint)
-                    
-                    state_order = {"active": 0, "future": 1, "closed": 2}
-                    unique_sprints.sort(key=lambda s: (
-                        state_order.get(s.state, 3),
-                        -(s.start_date.timestamp() if s.start_date else 0)
-                    ))
-                    available_sprints = unique_sprints
-                
-                # Show board name in sprint label for clarity
-                sprint_options = {}
-                for s in available_sprints:
-                    bname = board_names.get(s.board_id, "")
-                    label = f"{s.name} ({s.state})"
-                    if bname:
-                        label = f"[{bname}] {s.name} ({s.state})"
-                    sprint_options[s.jira_id] = label
-                
-                selected_sprint_ids = st.multiselect(
-                    "Sprints",
-                    options=list(sprint_options.keys()),
-                    format_func=lambda x: sprint_options.get(x, str(x)),
-                    key="inline_filter_sprints",
-                    help=f"{len(available_sprints)} sprints disponíveis" if available_sprints else "Nenhum sprint encontrado",
-                    placeholder="Selecione os sprints"
-                )
         
         with col3:
             # Team filter
@@ -2607,8 +2558,8 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                 placeholder="Todos os times"
             )
         
-        # Second row: Type, Date Start, Date End, Clear
-        col4, col5, col6, col7 = st.columns([2, 1.5, 1.5, 0.8])
+        # Second row: Type, Date Mode, Date Start, Date End, Clear
+        col4, col4b, col5, col6, col7 = st.columns([1.5, 1.3, 1.3, 1.3, 0.6])
         
         with col4:
             issue_type_options = ["Bug", "Task", "Sub-task", "Story", "Improvement", "Epic"]
@@ -2620,12 +2571,25 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                 placeholder="Todos os tipos"
             )
         
+        with col4b:
+            _dm_options = {
+                "created": "Data de Criação",
+                "updated": "Data de Atualização",
+                "resolved": "Data de Resolução",
+                "created_or_updated": "Criação ou Atualização",
+            }
+            _inline_date_mode = st.selectbox(
+                "Filtrar por",
+                options=list(_dm_options.keys()),
+                format_func=lambda x: _dm_options[x],
+                key="inline_filter_date_mode",
+            )
+        
         with col5:
             start_date = st.date_input(
                 "Data Início",
                 value=None,
                 key="inline_filter_start_date",
-                help="Filtrar issues criadas a partir desta data"
             )
         
         with col6:
@@ -2633,7 +2597,6 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
                 "Data Fim",
                 value=None,
                 key="inline_filter_end_date",
-                help="Filtrar issues criadas até esta data"
             )
         
         with col7:
@@ -2641,9 +2604,47 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
             st.write("")
             if st.button("🗑️ Limpar", key="inline_clear_filters"):
                 st.rerun()
+        
+        # Third row: Epic selector (only when Epic is selected in type filter)
+        _selected_epics = []
+        if "Epic" in selected_issue_types and selected_projects:
+            _epic_col1, _epic_col2 = st.columns([2, 4])
+            with _epic_col1:
+                # Fetch available epics for selected projects
+                _available_epics = []
+                if "connector" in st.session_state and st.session_state.connector:
+                    from src.cache.cache_manager import CacheManager
+                    _epic_cache_key = f"epics_{'_'.join(sorted(selected_projects))}"
+                    _cached_epics = CacheManager.get_cached_data(_epic_cache_key)
+                    if _cached_epics:
+                        _available_epics = _cached_epics
+                    else:
+                        try:
+                            _epic_jql = f"project IN ({', '.join(selected_projects)}) AND issuetype = Epic ORDER BY summary ASC"
+                            _epic_result = st.session_state.connector.get_issues(
+                                _epic_jql,
+                                ["summary"],
+                            )
+                            _available_epics = [{"key": i.key, "summary": i.summary} for i in _epic_result.issues]
+                            CacheManager.set_cached_data(_epic_cache_key, _available_epics, ttl_seconds=600)
+                        except Exception:
+                            pass
+                
+                if _available_epics:
+                    _epic_options = {e["key"]: f"{e['key']} - {e['summary']}" for e in _available_epics}
+                    _selected_epics = st.multiselect(
+                        "Épicos",
+                        options=list(_epic_options.keys()),
+                        format_func=lambda x: _epic_options.get(x, x),
+                        key="inline_filter_epics",
+                        placeholder="Todos os épicos"
+                    )
+                else:
+                    st.caption("Nenhum épico encontrado para os projetos selecionados.")
     
     # Store selected teams in session state for filtering
     st.session_state.selected_teams = selected_teams
+    st.session_state.selected_epics = _selected_epics
     
     # Build date range if dates are selected
     date_range = None
@@ -2655,11 +2656,12 @@ def render_inline_filters(projects: List[Project], sprints: List[Sprint]) -> Fil
     
     return Filters(
         project_keys=selected_projects,
-        sprint_ids=selected_sprint_ids,
+        sprint_ids=[],
         date_range=date_range,
         assignees=[],
         issue_types=selected_issue_types,
-        date_mode="created"
+        epic_keys=_selected_epics,
+        date_mode=_inline_date_mode
     )
 
 
