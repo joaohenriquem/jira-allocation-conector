@@ -2,10 +2,6 @@
 .env
 .streamlit/secrets.toml
 
-# Sensitive config files (use .enc versions)
-src/config/times.json
-src/config/allowed_projects.json
-
 # Python
 __pycache__/
 *.py[cod]

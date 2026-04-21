@@ -1,0 +1,177 @@
+[
+  {
+    "time": "Extrato e Movimentações",
+    "techLeader": "Raphael Pontes",
+    "membros": [
+      { "nome": "Marcus Júnior", "funcao": "Extrato e Movimentações" },
+      { "nome": "Victor Freitas", "funcao": "Extrato e Movimentações" },
+      { "nome": "William Dantas", "funcao": "Extrato e Movimentações" }
+    ]
+  },
+  {
+    "time": "Cadastro e Autenticação",
+    "techLeader": "Maxwell Souza",
+    "membros": [
+      { "nome": "David Fernandes", "funcao": "Cadastro e Autenticação" },
+      { "nome": "Ângelo Silva", "funcao": "Cadastro e Autenticação" },
+      { "nome": "Samuel Pedroza", "funcao": "Cadastro e Autenticação" },
+      { "nome": "Reginaldo Lima", "funcao": "Cadastro e Autenticação" },
+      { "nome": "Wesley Dias", "funcao": "Cadastro e Autenticação" }
+    ]
+  },
+  {
+    "time": "Conciliação e Regulatório",
+    "techLeader": "Douglas Ferreira",
+    "membros": [
+      { "nome": "Lucas Cassimiro", "funcao": "Conciliação Financeira" },
+      { "nome": "João Souza", "funcao": "Conciliação Financeira" },
+      { "nome": "Luciano Paiva", "funcao": "Regulatórios" },
+      { "nome": "Eliane Barbosa", "funcao": "Regulatórios" }
+    ]
+  },
+  {
+    "time": "Sistemas Internos",
+    "techLeader": "Diego Pereira",
+    "membros": [
+      { "nome": "Marcus Souza", "funcao": "Sistemas Internos" },
+      { "nome": "Igor Lopes", "funcao": "Sistemas Internos" },
+      { "nome": "Leonardo Sidney", "funcao": "Sistemas Internos" }
+    ]
+  },
+  {
+    "time": "Mobile",
+    "techLeader": "Gleyberson Andrade",
+    "membros": [
+      { "nome": "Breno Araújo", "funcao": "Android" },
+      { "nome": "Caio Gonçalves", "funcao": "Android" },
+      { "nome": "Gustavo Amorim", "funcao": "Android" },
+      { "nome": "Lucas Saquett", "funcao": "Android" },
+      { "nome": "Francisco Martins", "funcao": "iOS" },
+      { "nome": "Débora Lage", "funcao": "iOS" },
+      { "nome": "João Generoso", "funcao": "iOS" },
+      { "nome": "Gabriel Araújo", "funcao": "iOS" }
+    ]
+  },
+  {
+    "time": "Web e Marketing",
+    "techLeader": "Felipe Vasconcelos",
+    "membros": [
+      { "nome": "Amanda Felix", "funcao": "Web" },
+      { "nome": "Márcio Rotella", "funcao": "Web" },
+      { "nome": "Arthur Ogibowski", "funcao": "Web" },
+      { "nome": "Túlio Carvalho", "funcao": "Web" },
+      { "nome": "Caio Montenegro", "funcao": "Web" },
+      { "nome": "Welker Ferreira", "funcao": "Marketing" }
+    ]
+  },
+  {
+    "time": "Boleto / Cartão e-commerce / Maquininha",
+    "techLeader": "Henrique Machiavelli",
+    "membros": [
+      { "nome": "Luiz Campos", "funcao": "Boleto / Cartão e-commerce / Maquininha" },
+      { "nome": "Filipe Siqueira", "funcao": "Boleto / Cartão e-commerce / Maquininha" },
+      { "nome": "Gustavo Costa", "funcao": "Boleto / Cartão e-commerce / Maquininha" },
+      { "nome": "Tiago Dakuzaku", "funcao": "Boleto / Cartão e-commerce / Maquininha" }
+    ]
+  },
+  {
+    "time": "Pix - API / Open Finance",
+    "techLeader": "Gustavo Silva",
+    "membros": [
+      { "nome": "Pedro Filho", "funcao": "Pix - API" },
+      { "nome": "Christian Teixeira", "funcao": "Pix - API" },
+      { "nome": "André Zezen", "funcao": "Pix - API" },
+      { "nome": "Axel Andrade", "funcao": "Open Finance" },
+      { "nome": "Josue Almeida", "funcao": "Open Finance" }
+    ]
+  },
+  {
+    "time": "Pix - SPI",
+    "techLeader": "Matheus Flauzino",
+    "membros": [
+      { "nome": "Wallace Brito", "funcao": "Pix - SPI" },
+      { "nome": "Guilherme Gregorio", "funcao": "Pix - SPI" },
+      { "nome": "Hudson Leão", "funcao": "Pix - SPI" },
+      { "nome": "Gabriel Souza", "funcao": "Pix - SPI" },
+      { "nome": "Deborah Fonseca", "funcao": "Pix - SPI" },
+      { "nome": "Antonio Cardoso", "funcao": "Pix - SPI" },
+      { "nome": "Rafael Silva", "funcao": "Pix - SPI" },
+      { "nome": "Gabriel Santos", "funcao": "Pix - SPI" }
+    ]
+  },
+  {
+    "time": "Cartões",
+    "techLeader": "Lucas Silva",
+    "membros": [
+      { "nome": "Larissa Correia", "funcao": "Cartões" },
+      { "nome": "Valmir Junior", "funcao": "Cartões" },
+      { "nome": "Ana Bornachi", "funcao": "Cartões" },
+      { "nome": "Marcelo Silva", "funcao": "Cartões" },
+      { "nome": "Warlen Pinheiro", "funcao": "Cartões" }
+    ]
+  },
+  {
+    "time": "Motor",
+    "techLeader": "Isabelle Koga",
+    "membros": [
+      { "nome": "Demontie Ferreira", "funcao": "Motor" },
+      { "nome": "Mateus Juvencio", "funcao": "Motor" },
+      { "nome": "Andreza Moreira", "funcao": "Motor" }
+    ]
+  },
+  {
+    "time": "Investimento e Seguro",
+    "techLeader": "Lucas Costa",
+    "membros": [
+      { "nome": "Mauricio Batista", "funcao": "Investimento" },
+      { "nome": "Gabriel Santos", "funcao": "Investimento" },
+      { "nome": "Filipe Rodrigues", "funcao": "Seguro" }
+    ]
+  },
+  {
+    "time": "Produtos Crédito",
+    "techLeader": "Bernardo Marotta de Rezende",
+    "membros": [
+      { "nome": "Caio Messias", "funcao": "Antecipação" },
+      { "nome": "Pedro Euzebio", "funcao": "Antecipação" },
+      { "nome": "Andrei Silva", "funcao": "Capital" },
+      { "nome": "Mateus Pereira", "funcao": "Capital" }
+    ]
+  },
+  {
+    "time": "Infraestrutura Corporativa",
+    "techLeader": "Junior Menezes",
+    "membros": [
+      { "nome": "Carlos Lima", "funcao": "Cloud Controles" },
+      { "nome": "Diego Campos", "funcao": "Cloud Controles" },
+      { "nome": "Rafael Rodrigues", "funcao": "Cloud Controles" },
+      { "nome": "Tiago Amaral", "funcao": "Cloud Controles" },
+      { "nome": "Eric Eleutério", "funcao": "Cloud Controles" },
+      { "nome": "Renato Silva", "funcao": "Suporte" },
+      { "nome": "Kelvin Faria", "funcao": "Suporte" },
+      { "nome": "Brenda Melo", "funcao": "Suporte" },
+      { "nome": "Deraldo Filho", "funcao": "Suporte" }
+    ]
+  },
+  {
+    "time": "Change The Bank",
+    "techLeader": "Felipe Nascimento",
+    "membros": [
+      { "nome": "Daniel Lama", "funcao": "FINOPS" },
+      { "nome": "Caroline Gazzi", "funcao": "Banco de Dados" },
+      { "nome": "Leonardo", "funcao": "Banco de Dados" },
+      { "nome": "Cristiano Morais", "funcao": "Cloud CTB" },
+      { "nome": "Claudinei Viana", "funcao": "Cloud CTB" }
+    ]
+  },
+  {
+    "time": "Run The Bank",
+    "techLeader": "Adriano Costa",
+    "membros": [
+      { "nome": "Henrique Santos", "funcao": "Cloud RTB" },
+      { "nome": "Vitor Alves", "funcao": "Cloud RTB" },
+      { "nome": "Tiago Rieger", "funcao": "Cloud RTB" },
+      { "nome": "Rafael Simões", "funcao": "Cloud RTB" }
+    ]
+  }
+]

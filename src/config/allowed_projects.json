@@ -1,0 +1,9 @@
+[
+  { "key": "INFRA", "name": "Infraestrutura", "description": "Projeto de Infraestrutura de TI" },
+  { "key": "AD", "name": "Adquirência", "description": "Projeto de Adquirência" },
+  { "key": "EM", "name": "Boletos e Carnês", "description": "Projeto de Boletos e Carnês" },
+  { "key": "OFI", "name": "Open Finance", "description": "Projeto de Open Finance" },
+  { "key": "PX", "name": "Pix", "description": "Projeto Pix" },
+  { "key": "CPM", "name": "Contas", "description": "Projeto de Contas" },
+  { "key": "SPM", "name": "Investimentos e Seguros", "description": "Projeto de Investimentos e Seguros" }
+]
