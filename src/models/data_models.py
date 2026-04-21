@@ -375,7 +375,7 @@ class DateRange:
 
 @dataclass
 class Filters:
-    """Filter criteria for queries."""
+    """Filter criteria for queries (v2 - with epic_keys and date_mode)."""
     project_keys: List[str] = field(default_factory=list)
     sprint_ids: List[int] = field(default_factory=list)
     date_range: Optional[DateRange] = None
