@@ -532,6 +532,14 @@ def load_projects(connector: Optional[JiraConnector], config: Optional[AppConfig
             # If config has specific projects, use them; otherwise fetch all
             project_keys = config.projects if config and config.projects else []
             projects = connector.get_projects(project_keys)
+            
+            # Exclude deprecated, discontinued and test projects
+            _exclude_keywords = ["depreciado", "descontinuado", "teste"]
+            projects = [
+                p for p in projects
+                if not any(kw in (p.name or "").lower() for kw in _exclude_keywords)
+            ]
+            
             ttl = config.cache_ttl_seconds if config else 900
             CacheManager.set_cached_data(cache_key, projects, ttl)
             return projects
@@ -989,7 +997,7 @@ def _render_issue_type_pie(issues: List[Issue]):
     _product = [i for i in _filtered if _classify_area(i) == "Produto"]
     _eng = [i for i in _filtered if _classify_area(i) == "Engenharia"]
     
-    st.subheader("📊 Percentual por Tipo de Issue")
+    st.subheader("Percentual por Tipo de Issue")
     
     col1, col2 = st.columns(2)
     
@@ -1141,7 +1149,7 @@ def render_allocation_section(
         allocation_metrics: Calculated allocation metrics.
         issues: Issues for workload distribution.
     """
-    st.subheader("📊 Métricas de Alocação")
+    st.subheader("Métricas de Alocação")
     
     if not allocation_metrics:
         st.info("Nenhuma métrica de alocação disponível")
@@ -1293,7 +1301,7 @@ def render_productivity_section(
         sprints: Sprints for velocity chart.
         issues: Issues for trend analysis.
     """
-    st.subheader("⚡ Métricas de Produtividade")
+    st.subheader("Métricas de Produtividade")
     
     # Main metrics row
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -1370,7 +1378,7 @@ def render_productivity_drilldown(
     
     st.write("**Detalhamento de Produtividade** (clique para expandir)")
     
-    with st.expander("📈 Throughput - Issues Concluídas", expanded=False):
+    with st.expander("Throughput - Issues Concluídas", expanded=False):
         done_issues = [i for i in issues if i.status_category == "Done"]
         if done_issues:
             from src.models.data_models import get_tshirt_size_label
@@ -1394,7 +1402,7 @@ def render_productivity_drilldown(
         else:
             st.info("Nenhuma issue concluída")
     
-    with st.expander("⏱️ Lead Time - Detalhes", expanded=False):
+    with st.expander("Lead Time - Detalhes", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
             st.write("**Lead Time Médio:**")
@@ -1415,7 +1423,7 @@ def render_productivity_drilldown(
                 else:
                     st.success("Lead time saudável")
     
-    with st.expander("🔄 Cycle Time - Detalhes", expanded=False):
+    with st.expander("Cycle Time - Detalhes", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
             st.write("**Cycle Time Médio:**")
@@ -1454,7 +1462,7 @@ def render_export_section(
         productivity_metrics: Productivity data to export.
         issues: Issues to export.
     """
-    st.subheader("📥 Exportar Dados")
+    st.subheader("Exportar Dados")
     
     col1, col2, col3 = st.columns(3)
     
@@ -1515,7 +1523,7 @@ def render_ai_analysis_section(
         allocation_metrics: Team allocation metrics
         productivity_metrics: Productivity metrics
     """
-    st.subheader("🤖 Análise de IA")
+    st.subheader("Análise com IA")
     
     # Check if AI is available
     assistant = get_ai_assistant()
@@ -1531,7 +1539,7 @@ def render_ai_analysis_section(
     col1, col2 = st.columns([3, 1])
     
     with col2:
-        if st.button("🔄 Gerar Análise", type="primary"):
+        if st.button("Gerar Análise", type="primary"):
             with st.spinner("Analisando métricas com IA..."):
                 analysis = assistant.analyze_allocation(allocation_metrics, productivity_metrics)
                 st.session_state.ai_analysis = analysis
@@ -1553,7 +1561,7 @@ def render_teams_page():
     """Render the teams configuration page."""
     from src.config.teams_loader import load_teams, save_teams, Team, TeamMember
     
-    st.header("👥 Configuração de Times")
+    st.header("Configuração de Times")
     st.markdown("Visualize e gerencie os times e seus membros.")
     
     st.warning("⚠️ Os times ainda estão em fase de organização e podem haver inconsistências. Em caso de dúvidas, entre em contato com joao.ferreira@sejaefi.com.br")
@@ -1583,7 +1591,7 @@ def render_teams_page():
     
     # Search by professional
     search_query = st.text_input(
-        "🔍 Buscar profissional",
+        "Buscar profissional",
         placeholder="Digite o nome do profissional...",
         key="teams_search_professional"
     )
@@ -1693,10 +1701,10 @@ def render_configuration_page(
         render_loading_card_skeleton,
     )
     
-    st.header("⚙️ Configuração e Status")
+    st.header("Configuração e Status")
     
     # Connection Status Section
-    st.subheader("🔌 Status da Conexão")
+    st.subheader("Status da Conexão")
     
     col1, col2 = st.columns(2)
     
@@ -1732,7 +1740,7 @@ def render_configuration_page(
     st.divider()
     
     # Application Info Section
-    st.subheader("📱 Informações da Aplicação")
+    st.subheader("Informações da Aplicação")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -1759,7 +1767,7 @@ def render_configuration_page(
     st.divider()
     
     # Configuration Details Section
-    st.subheader("📝 Configuração Atual")
+    st.subheader("Configuração Atual")
     
     if config:
         with st.expander("Ver Configuração", expanded=False):
@@ -1778,7 +1786,7 @@ def render_configuration_page(
     st.divider()
     
     # Cache Management
-    st.subheader("🗑️ Gerenciamento de Cache")
+    st.subheader("Gerenciamento de Cache")
     
     st.caption("O cache é compartilhado entre todos os usuários (TTL: 1 hora)")
     
@@ -1845,16 +1853,30 @@ def render_professional_view_tab(
     jira_base_url = config.jira.base_url if config else ""
     default_capacity = config.default_capacity_hours if config else 24.0
     
-    # Load professionals first (needed for the filter)
+    # Load allowed projects (filtered scope for performance)
+    import os as _os
+    import json as _json
+    _allowed_path = _os.path.join(_os.path.dirname(__file__), "src", "config", "allowed_projects.json")
+    _allowed_list = []
     try:
-        all_projects = get_all_projects_cached(
-            connector=connector,
-            base_url=jira_base_url
-        )
-        project_keys = [p.key for p in all_projects]
-    except Exception as e:
-        st.error("❌ Erro ao carregar projetos do Jira.")
-        return
+        if _os.path.exists(_allowed_path):
+            with open(_allowed_path, "r", encoding="utf-8") as _f:
+                _allowed_list = _json.load(_f)
+    except Exception:
+        pass
+    
+    if _allowed_list:
+        project_keys = [p["key"] for p in _allowed_list]
+    else:
+        try:
+            all_projects = get_all_projects_cached(
+                connector=connector,
+                base_url=jira_base_url
+            )
+            project_keys = [p.key for p in all_projects]
+        except Exception:
+            st.error("Erro ao carregar projetos.")
+            return
     
     if not project_keys:
         st.info("ℹ️ Nenhum projeto disponível.")
@@ -1865,7 +1887,7 @@ def render_professional_view_tab(
     team_names = get_team_names(teams)
     
     # Filtros em linha única
-    with st.expander("🔍 Filtros", expanded=True):
+    with st.expander("Filtros", expanded=True):
         col1, col2, col3, col4, col5 = st.columns([2.5, 1.5, 1.5, 1.5, 0.8])
         
         # Get date range from session state
@@ -1880,8 +1902,19 @@ def render_professional_view_tab(
                 end=prof_end_date
             )
         
-        # Load professionals with loading animation
+        # Load professionals only when user interacts (avoid blocking other tabs)
         professionals = None
+        if not st.session_state.get("_prof_data_loaded"):
+            st.session_state._prof_data_loaded = False
+        
+        _load_col1, _load_col2, _load_col3 = st.columns([1, 2, 1])
+        with _load_col2:
+            if not st.session_state._prof_data_loaded:
+                if st.button("Carregar profissionais", key="btn_load_profs", type="primary", use_container_width=True):
+                    st.session_state._prof_data_loaded = True
+                    st.rerun()
+                return
+        
         with st.spinner("Carregando profissionais..."):
             try:
                 professionals = get_all_professionals_cached(
@@ -1958,7 +1991,7 @@ def render_professional_view_tab(
         with col5:
             st.write("")  # Spacer
             st.write("")  # Spacer
-            if st.button("🔄", key="refresh_professionals", help="Atualizar dados"):
+            if st.button("↻", key="refresh_professionals", help="Atualizar dados"):
                 clear_professionals_cache()
                 st.session_state.professionals_preload_started = False
                 st.rerun()
@@ -2049,7 +2082,7 @@ def render_dashboard_content(
         connection_status: Current connection status.
     """
     # Header and description
-    st.header("📊 Visão por Projeto")
+    st.header("Visão por Projeto")
     st.markdown(
         "Visualize métricas de alocação e produtividade por projeto e sprint."
     )
@@ -2193,12 +2226,42 @@ def main():
     connection_status = st.session_state.connection_status
     
     # Load projects (cached) - sprints are loaded per-tab when needed
-    if "cached_projects_list" not in st.session_state:
-        with st.spinner("Carregando projetos..."):
-            projects = load_projects(connector, config)
+    if "cached_projects_list" not in st.session_state or not st.session_state.cached_projects_list:
+        _loading_placeholder = st.empty()
+        _loading_placeholder.markdown("""
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6rem 2rem; gap:1.5rem;">
+            <img src="https://sejaefi.com.br/_ipx/_/images/paginas/common/logos/logo-efi-bank-orange.svg" 
+                 alt="Efí" style="height:36px; opacity:0.8;">
+            <div style="display:flex; align-items:center; gap:0.75rem; color:#6c757d; font-size:0.875rem;">
+                <div style="width:18px; height:18px; border:2px solid #e9ecef; border-top:2px solid #00b4b6; border-radius:50%; animation:spin 0.8s linear infinite;"></div>
+                <span>Carregando...</span>
+            </div>
+        </div>
+        <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+        """, unsafe_allow_html=True)
+        projects = load_projects(connector, config)
+        _loading_placeholder.empty()
+        if projects:
             st.session_state.cached_projects_list = projects
+        else:
+            projects = []
     else:
         projects = st.session_state.cached_projects_list
+    
+    # Load allowed projects config (for tooltips and professional view filtering)
+    import os as _os
+    import json as _json
+    _allowed_projects_path = _os.path.join(_os.path.dirname(__file__), "src", "config", "allowed_projects.json")
+    _allowed_projects = []
+    try:
+        if _os.path.exists(_allowed_projects_path):
+            with open(_allowed_projects_path, "r", encoding="utf-8") as _f:
+                _allowed_projects = _json.load(_f)
+    except Exception:
+        pass
+    _proj_tooltip_lines = "  \n".join(f"• {p['key']} - {p['name']}" for p in _allowed_projects)
+    _proj_tooltip = f"**Projetos liberados:**  \n{_proj_tooltip_lines}" if _allowed_projects else ""
+    
     sprints = []  # Sprints loaded on demand per tab
     
     # Header with dark background similar to Efí website
@@ -2206,25 +2269,26 @@ def main():
     st.markdown(
         f"""
         <div style="
-            background: linear-gradient(135deg, #3A3A3A 0%, #4A4A4A 100%);
-            padding: 1rem 2rem;
-            margin: -1rem -2rem 1rem -2rem;
+            background: #ffffff;
+            padding: 0.75rem 2rem;
+            margin: -1rem -2rem 0 -2rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            border-bottom: 1px solid rgba(0,0,0,0.12);
         ">
             <div style="display: flex; align-items: center; gap: 2rem;">
                 <img src="https://sejaefi.com.br/_ipx/_/images/paginas/common/logos/logo-efi-bank-orange.svg" 
-                     alt="Efí" style="height: 32px;">
-                <span style="color: #9CA3AF; font-size: 0.9rem; font-weight: 500;">Acompanhamento Jira</span>
+                     alt="Efí" style="height: 28px;">
+                <span style="color: rgba(0,0,0,0.6); font-size: 0.875rem; font-weight: 500;">Acompanhamento Jira</span>
             </div>
             <div style="display: flex; align-items: center; gap: 1rem;">
                 <div style="
-                    background: {'rgba(34, 197, 94, 0.15)' if connection_status.connected else 'rgba(239, 68, 68, 0.15)'};
-                    color: {'#22C55E' if connection_status.connected else '#EF4444'};
-                    padding: 0.4rem 1rem;
+                    background: {'rgba(76, 175, 80, 0.08)' if connection_status.connected else 'rgba(176, 0, 32, 0.08)'};
+                    color: {'#4CAF50' if connection_status.connected else '#B00020'};
+                    padding: 0.35rem 0.75rem;
                     border-radius: 4px;
-                    font-size: 0.8rem;
+                    font-size: 0.75rem;
                     font-weight: 500;
                 ">{status_badge}</div>
             </div>
@@ -2236,7 +2300,7 @@ def main():
     # Logout button (small, top right)
     _cols_spacer, _col_logout = st.columns([0.94, 0.06])
     with _col_logout:
-        if st.button("🚪 Sair", key="btn_logout", type="tertiary"):
+        if st.button("Sair", key="btn_logout", type="tertiary"):
             for k in list(st.session_state.keys()):
                 del st.session_state[k]
             st.session_state.logged_out = True
@@ -2244,40 +2308,31 @@ def main():
     
     # Main content area with tabs
     tab_cycle, tab_dashboard, tab_professional, tab_report, tab_teams = st.tabs([
-        "🔄 Visão Unificada",
-        "📊 Visão por Projeto",
-        "👤 Visão por Profissional",
-        "📄 Relatórios",
-        "👥 Times",
+        "Visão Unificada",
+        "Visão por Projeto",
+        "Visão por Profissional",
+        "Relatórios",
+        "Times",
     ])
-    
-    # Load allowed projects list (shared across tabs)
-    import os as _os
-    from src.utils.crypto import load_encrypted_json
-    _allowed_projects_path = _os.path.join(_os.path.dirname(__file__), "src", "config", "allowed_projects.json")
-    _allowed_projects = load_encrypted_json(_allowed_projects_path) or []
-    _proj_tooltip_lines = "  \n".join(f"• {p['key']} - {p['name']}" for p in _allowed_projects)
-    _proj_tooltip = f"**Projetos liberados:**  \n{_proj_tooltip_lines}" if _allowed_projects else ""
     
     with tab_teams:
         render_teams_page()
     
     with tab_dashboard:
-        filters = render_inline_filters(projects, _proj_tooltip)
-        render_dashboard_content(filters, projects, sprints, connection_status)
+        if not projects:
+            st.warning("Nenhum projeto carregado. Verifique a conexão com o Jira.")
+        else:
+            filters = render_inline_filters(projects, _proj_tooltip)
+            render_dashboard_content(filters, projects, sprints, connection_status)
     
     with tab_professional:
-        if st.session_state.get("load_professional_tab", False):
-            render_professional_view_tab(connector, config, connection_status)
-        else:
-            st.info("👆 Clique abaixo para carregar a visão por profissional.")
-            if st.button("Carregar Visão por Profissional", key="btn_load_prof_tab", type="primary"):
-                st.session_state.load_professional_tab = True
-                st.rerun()
+        render_professional_view_tab(connector, config, connection_status)
     
     with tab_cycle:
         # Cycle view filters
-        with st.expander("🔍 Filtros", expanded=True):
+        if not projects:
+            st.warning("Nenhum projeto carregado. Verifique a conexão com o Jira.")
+        with st.expander("Filtros", expanded=True):
             cc1, cc_dm, cc2, cc3 = st.columns([2, 1.5, 1.5, 1.5])
             
             with cc1:
@@ -2324,11 +2379,16 @@ def main():
             cycle_issues = load_issues(connector, cycle_filters)
             render_cycle_view_tab(cycle_issues)
         else:
-            st.info("👆 Selecione um projeto nos filtros acima para visualizar o ciclo completo.")
+            st.markdown("""
+            <div style="text-align: center; padding: 3rem 1rem; color: #6c757d;">
+                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Selecione um projeto e um período nos filtros acima</p>
+                <p style="font-size: 0.875rem;">Os dados serão carregados automaticamente.</p>
+            </div>
+            """, unsafe_allow_html=True)
     
     with tab_report:
         # All report filters together
-        with st.expander("🔍 Filtros", expanded=True):
+        with st.expander("Filtros", expanded=True):
             from datetime import date as _date
             _current_year = _date.today().year
             _quarter_options = {
@@ -2447,12 +2507,12 @@ def main():
             with rc7:
                 st.write("")
                 st.write("")
-                report_search = st.button("🔍 Consultar", key="btn_report_search", type="primary", width="stretch")
+                report_search = st.button("Consultar", key="btn_report_search", type="primary", width="stretch")
             
             with rc8:
                 st.write("")
                 st.write("")
-                report_clear = st.button("🗑️ Limpar", key="btn_report_clear", width="stretch")
+                report_clear = st.button("Limpar", key="btn_report_clear", width="stretch")
         
         # Handle clear button
         if report_clear:
@@ -2509,7 +2569,12 @@ def main():
                 team_filter=st.session_state.get("report_filter_team", []),
             )
         elif not report_selected_projects:
-            st.info("👆 Selecione um projeto e clique em Consultar para gerar o relatório.")
+            st.markdown("""
+            <div style="text-align: center; padding: 3rem 1rem; color: #6c757d;">
+                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Selecione um projeto e clique em Consultar</p>
+                <p style="font-size: 0.875rem;">O relatório será gerado com os filtros selecionados.</p>
+            </div>
+            """, unsafe_allow_html=True)
 
 
 def render_inline_filters(projects: List[Project], proj_tooltip: str = "") -> Filters:
@@ -2527,7 +2592,7 @@ def render_inline_filters(projects: List[Project], proj_tooltip: str = "") -> Fi
     teams = load_teams()
     team_names = get_team_names(teams)
     
-    with st.expander("🔍 Filtros", expanded=True):
+    with st.expander("Filtros", expanded=True):
         # First row: Project, Team
         col1, col3 = st.columns([2, 2])
         
@@ -2602,7 +2667,7 @@ def render_inline_filters(projects: List[Project], proj_tooltip: str = "") -> Fi
         with col7:
             st.write("")
             st.write("")
-            if st.button("🗑️ Limpar", key="inline_clear_filters"):
+            if st.button("Limpar", key="inline_clear_filters"):
                 st.rerun()
         
         # Third row: Epic selector (only when Epic is selected in type filter)
