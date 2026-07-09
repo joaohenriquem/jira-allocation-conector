@@ -1673,12 +1673,7 @@ def render_teams_page():
                 )
     
     st.divider()
-    
-    # Info about editing
-    st.info(
-        "💡 Para editar os times, modifique o arquivo `src/config/times.json` diretamente. "
-        "As alterações serão refletidas após recarregar a página."
-    )
+
 
 
 # =============================================================================
