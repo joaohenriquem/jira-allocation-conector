@@ -472,7 +472,7 @@ def render_cycle_flow_balance(issues: List[Issue]):
     if not issues:
         return
     
-    st.markdown("### 📉 Balanço de Vazão por Tipo")
+    st.markdown("### Balanço de Vazão por Tipo")
     
     flow_map = defaultdict(lambda: {"entradas": 0, "saidas": 0})
     
@@ -630,7 +630,7 @@ def render_cycle_view_tab(issues: List[Issue]):
     st.divider()
     
     # Kanban board view
-    st.markdown("### 📋 Detalhamento por Fase")
+    st.markdown("### Detalhamento por Fase")
     render_cycle_board(issues)
     
     st.divider()

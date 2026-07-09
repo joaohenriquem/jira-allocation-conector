@@ -286,7 +286,7 @@ def render_report_tab(issues: List[Issue], type_filter: list = None, status_filt
         status_filter: Optional list of statuses to filter.
         team_filter: Optional list of teams to filter.
     """
-    st.subheader("📄 Relatório e Extração de Dados")
+    st.subheader("Relatório e Extração de Dados")
     st.caption("Extraia dados do Jira para análise, identifique padrões de suporte e exporte para planilha")
     
     if not issues:
@@ -337,10 +337,10 @@ def render_report_tab(issues: List[Issue], type_filter: list = None, status_filt
     
     # Analysis tabs
     analysis_tab, keywords_tab, ai_tab, data_tab = st.tabs([
-        "📊 Análise",
-        "🔍 Classificação Suporte vs Dev",
-        "🤖 Análise com IA",
-        "📋 Dados Completos"
+        "Análise",
+        "Classificação Suporte vs Dev",
+        "Análise com IA",
+        "Dados Completos"
     ])
     
     with analysis_tab:
@@ -480,7 +480,7 @@ def render_ai_analysis(df: pd.DataFrame):
     col_btn, col_info = st.columns([1, 3])
     with col_btn:
         run_analysis = st.button(
-            "🚀 Analisar com IA",
+            "Analisar com IA",
             key="btn_run_ai_analysis",
             type="primary",
             width="stretch"

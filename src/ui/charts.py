@@ -39,16 +39,16 @@ CHART_STATUS_COLORS = {
     "underutilized": STATUS_COLORS["warning"], # Amber
 }
 
-# Secondary colors for multi-series charts (Efí-inspired palette)
+# Secondary colors for multi-series charts (GMUD palette)
 CHART_SECONDARY_COLORS = [
-    PRIMARY_COLOR_HEX,  # Efí Orange #F37021
-    "#D85F1A",          # Efí Dark Orange
-    "#00A69C",          # Efí Turquoise
-    "#008B83",          # Efí Dark Turquoise
-    "#3b82f6",          # Blue
-    "#8b5cf6",          # Purple
-    "#10b981",          # Emerald
-    "#ec4899",          # Pink
+    "#1867C0",          # Primary Blue
+    "#48A9A6",          # Secondary Teal
+    "#4CAF50",          # Success Green
+    "#FB8C00",          # Warning Orange
+    "#7C4DFF",          # Deep Purple
+    "#26A69A",          # Teal
+    "#EC407A",          # Pink
+    "#78909C",          # Blue Grey
 ]
 
 # Common chart layout settings
